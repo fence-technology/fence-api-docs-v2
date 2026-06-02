@@ -1,0 +1,249 @@
+/* Fence Design System — Colors & Type
+ * ---------------------------------------------------------------
+ * Source: Fence-Brandguide.pdf (21 pages)
+ * Type: GT Planar (Grilli Type, trial) — Regular 400, Medium 500.
+ *       Use 400/500 wherever possible. The brand only ships these
+ *       two weights — avoid 600/700/800 entirely.
+ * --------------------------------------------------------------- */
+@font-face {
+  font-family: 'GT Planar';
+  src: url('fonts/GT-Planar-Regular.otf') format('opentype');
+  font-weight: 400;
+  font-style: normal;
+  font-display: swap;
+}
+@font-face {
+  font-family: 'GT Planar';
+  src: url('fonts/GT-Planar-Medium.otf') format('opentype');
+  font-weight: 500;
+  font-style: normal;
+  font-display: swap;
+}
+:root {
+  /* ---------- Colors: Primary ---------- */
+  --fence-black: #1B1B1B;            /* Accent / Body */
+  --fence-white: #FFFCF8;            /* Primary surface, warm off-white */
+  --fence-gold: #DEB483;             /* Primary brand accent, the F mark */
+  --fence-blue: #A3B8C8;             /* Primary secondary */
+  --fence-green: #6B8F71;            /* Primary secondary */
+
+  /* ---------- Colors: Accent (tinted surfaces) ---------- */
+  --fence-gold-accent: #F8F0E6;      /* Hero/page background tint */
+  --fence-blue-accent: #E3EAEE;
+  --fence-green-accent: #D3DDD4;
+
+  /* ---------- Foreground / text scale ---------- */
+  --fg-1: #1B1B1B;                   /* Primary text */
+  --fg-2: #4A4A4A;                   /* Secondary text */
+  --fg-3: #8A8A8A;                   /* Tertiary / captions */
+  --fg-4: #BFBFBF;                   /* Disabled / hairline */
+  --fg-on-dark: #FFFCF8;
+  --fg-on-dark-2: rgba(255, 252, 248, 0.65);
+  --fg-on-dark-3: rgba(255, 252, 248, 0.40);
+
+  /* ---------- Background scale ---------- */
+  --bg-page: #FFFCF8;                /* Default page surface */
+  --bg-elevated: #FFFFFF;            /* Cards, modals */
+  --bg-tinted: #F8F0E6;              /* Hero / quiet sections */
+  --bg-dark: #1B1B1B;                /* Inverted */
+  --bg-dark-elevated: #242424;
+
+  /* ---------- Borders ---------- */
+  --border-1: rgba(27, 27, 27, 0.10);    /* Hairline */
+  --border-2: rgba(27, 27, 27, 0.18);    /* Card */
+  --border-3: rgba(27, 27, 27, 0.32);    /* Strong */
+  --border-on-dark-1: rgba(255, 252, 248, 0.10);
+  --border-on-dark-2: rgba(255, 252, 248, 0.18);
+
+  /* ---------- Semantic ---------- */
+  --ok: #6B8F71;
+  --ok-accent: #D3DDD4;
+  --info: #A3B8C8;
+  --info-accent: #E3EAEE;
+  --warn: #DEB483;
+  --warn-accent: #F8F0E6;
+  --danger: #B85450;
+  --danger-accent: #F2DCDA;
+
+  /* ---------- Typography ---------- */
+  --font-sans: 'GT Planar', ui-sans-serif, system-ui, -apple-system, sans-serif;
+  --font-mono: ui-monospace, 'JetBrains Mono', 'SFMono-Regular', Menlo, monospace;
+
+  /* Type scale (1920 baseline; scale down with rem for smaller surfaces) */
+  --fs-xs: 12px;
+  --fs-sm: 14px;
+  --fs-base: 16px;
+  --fs-md: 18px;
+  --fs-lg: 22px;
+  --fs-xl: 28px;
+  --fs-2xl: 36px;
+  --fs-3xl: 48px;
+  --fs-4xl: 64px;
+  --fs-5xl: 88px;
+  --fs-6xl: 120px;
+
+  /* Tracking — GT Planar reads best slightly tightened at large sizes */
+  --tracking-display: -0.02em;
+  --tracking-tight: -0.01em;
+  --tracking-normal: 0;
+  --tracking-wide: 0.04em;
+  --tracking-eyebrow: 0.14em;        /* Used for "FENCE" labels and section eyebrows */
+
+  /* Leading */
+  --lh-display: 1.05;
+  --lh-tight: 1.15;
+  --lh-snug: 1.3;
+  --lh-body: 1.5;
+  --lh-loose: 1.7;
+
+  /* Weights */
+  --w-light: 300;
+  --w-regular: 400;
+  --w-medium: 500;
+  --w-semibold: 600;
+  --w-bold: 700;
+  --w-black: 800;
+
+  /* ---------- Spacing (8px base) ---------- */
+  --s-0: 0;
+  --s-1: 4px;
+  --s-2: 8px;
+  --s-3: 12px;
+  --s-4: 16px;
+  --s-5: 24px;
+  --s-6: 32px;
+  --s-7: 48px;
+  --s-8: 64px;
+  --s-9: 96px;
+  --s-10: 128px;
+  --s-11: 192px;
+
+  /* ---------- Radii ---------- */
+  --r-xs: 2px;
+  --r-sm: 4px;
+  --r-md: 8px;
+  --r-lg: 12px;
+  --r-xl: 16px;
+  --r-2xl: 24px;
+  --r-pill: 9999px;
+  /* The signature Fence shape: square with one rounded corner (top-right) */
+  --r-leaf-tr: 0 50% 0 0;            /* Use as: border-radius: var(--r-leaf-tr); */
+
+  /* ---------- Elevation (kept restrained, mostly hairlines) ---------- */
+  --shadow-1: 0 1px 2px rgba(27, 27, 27, 0.04);
+  --shadow-2: 0 2px 8px rgba(27, 27, 27, 0.06), 0 1px 2px rgba(27, 27, 27, 0.04);
+  --shadow-3: 0 8px 24px rgba(27, 27, 27, 0.08), 0 2px 4px rgba(27, 27, 27, 0.04);
+  --shadow-4: 0 24px 48px rgba(27, 27, 27, 0.10), 0 4px 8px rgba(27, 27, 27, 0.04);
+  --shadow-card: 0 1px 0 rgba(27, 27, 27, 0.04), 0 1px 3px rgba(27, 27, 27, 0.06);
+
+  /* ---------- Motion ---------- */
+  --ease-out: cubic-bezier(0.22, 1, 0.36, 1);
+  --ease-in-out: cubic-bezier(0.65, 0, 0.35, 1);
+  --dur-fast: 120ms;
+  --dur-base: 200ms;
+  --dur-slow: 360ms;
+}
+
+/* =====================================================
+ * Semantic typography roles
+ * ===================================================== */
+
+html, body {
+  font-family: var(--font-sans);
+  color: var(--fg-1);
+  background: var(--bg-page);
+  font-size: var(--fs-base);
+  line-height: var(--lh-body);
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+.eyebrow,
+.fence-eyebrow {
+  font-size: var(--fs-xs);
+  font-weight: var(--w-medium);
+  letter-spacing: var(--tracking-eyebrow);
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+
+.h1, h1.fence {
+  font-size: var(--fs-5xl);
+  font-weight: var(--w-bold);
+  letter-spacing: var(--tracking-display);
+  line-height: var(--lh-display);
+}
+
+.h2, h2.fence {
+  font-size: var(--fs-3xl);
+  font-weight: var(--w-bold);
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--lh-tight);
+}
+
+.h3, h3.fence {
+  font-size: var(--fs-2xl);
+  font-weight: var(--w-semibold);
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--lh-tight);
+}
+
+.h4, h4.fence {
+  font-size: var(--fs-xl);
+  font-weight: var(--w-semibold);
+  letter-spacing: var(--tracking-tight);
+  line-height: var(--lh-snug);
+}
+
+.h5, h5.fence {
+  font-size: var(--fs-lg);
+  font-weight: var(--w-semibold);
+  line-height: var(--lh-snug);
+}
+
+.body-lg {
+  font-size: var(--fs-md);
+  line-height: var(--lh-body);
+  color: var(--fg-1);
+}
+
+.body, p.fence {
+  font-size: var(--fs-base);
+  line-height: var(--lh-body);
+  color: var(--fg-1);
+}
+
+.body-sm {
+  font-size: var(--fs-sm);
+  line-height: var(--lh-body);
+  color: var(--fg-2);
+}
+
+.caption {
+  font-size: var(--fs-xs);
+  line-height: var(--lh-snug);
+  color: var(--fg-3);
+}
+
+.mono {
+  font-family: var(--font-mono);
+  font-size: var(--fs-sm);
+  letter-spacing: var(--tracking-normal);
+}
+
+/* The "FENCE" wordmark eyebrow seen on every page of the brand guide */
+.fence-mark {
+  font-size: 11px;
+  font-weight: var(--w-medium);
+  letter-spacing: 0.18em;
+  text-transform: uppercase;
+  color: var(--fg-3);
+}
+
+/* Display lockup style for hero numerics ($1.4B, 15+) */
+.fence-stat {
+  font-size: var(--fs-4xl);
+  font-weight: var(--w-bold);
+  letter-spacing: var(--tracking-display);
+  line-height: 1;
+}

@@ -1,0 +1,964 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>Fence API — Client Integration Guide</title>
+<link rel="icon" type="image/png" href="assets/favicon.png">
+<link rel="stylesheet" href="tokens.css">
+<link rel="stylesheet" href="docs.css">
+<style>
+/* ===================== PRINT / PDF OVERRIDES ===================== */
+@media print {
+  @page { size: A4 portrait; margin: 14mm 12mm; }
+
+  *, *::before, *::after {
+    animation-delay: -99s !important; animation-duration: .001s !important;
+    animation-iteration-count: 1 !important; animation-fill-mode: both !important;
+    animation-play-state: running !important; transition-duration: 0s !important;
+    -webkit-print-color-adjust: exact !important; print-color-adjust: exact !important;
+  }
+
+  html { scroll-behavior: auto; font-size: 14px; }
+  body { background: #fff; }
+
+  /* drop the app chrome */
+  .topbar, .nav, .toc, .nav-scrim, .topbar-burger { display: none !important; }
+
+  /* linearize the three-column grid into one flowing column */
+  .layout { display: block !important; max-width: 100% !important; margin: 0 !important; }
+  .content { padding: 0 !important; min-width: 0 !important; }
+  .content section { scroll-margin-top: 0 !important; }
+
+  /* hero */
+  .hero { margin-bottom: 24px !important; }
+  .hero h1 { font-size: 34px !important; }
+  .hero-leaf { display: none !important; }
+  .hero-meta { gap: 8px !important; }
+  .meta-chip { box-shadow: none !important; border-color: var(--border-2) !important; }
+
+  /* keep related blocks together */
+  h2.sec { break-before: page; break-after: avoid; }
+  #getting-started { break-before: avoid; }              /* first section follows hero */
+  h3.sub, h4.subsub { break-after: avoid; }
+  .endpoint, .code, .table-wrap, .schema, .callout, .fcard, .cur-grid { break-inside: avoid; }
+  .endpoint + .code, h3.sub + p, h4.subsub + p { break-before: avoid; }
+  .card-grid { break-inside: avoid; }
+  tr, .field { break-inside: avoid; }
+  thead { display: table-header-group; }                 /* repeat table headers across pages */
+
+  /* force dark code blocks + tinted surfaces to render their colors */
+  .code { box-shadow: none !important; border: 1px solid #1B1B1B !important; }
+  .code pre { font-size: 11.5px !important; white-space: pre-wrap !important; word-break: break-word; }
+  .endpoint { box-shadow: none !important; }
+  .endpoint .path { white-space: pre-wrap !important; word-break: break-all; }
+  .table-wrap, .schema, .fcard { box-shadow: none !important; }
+  .fence-table { font-size: 12px !important; }
+
+  /* divider rhythm */
+  .sec-divider { display: none !important; }
+
+  /* footer on its own band, dark */
+  .foot { break-before: page; padding: 24px !important; }
+
+  /* widen text measure for print */
+  .content p, .sec-intro, ul.fence-list, ol.fence-list, .hero .lede, .callout, .cur-grid { max-width: none !important; }
+
+  a[href] { color: inherit !important; }
+}
+</style>
+</head>
+<body>
+
+<!-- ============================ TOP BAR ============================ -->
+<header class="topbar">
+  <button class="topbar-burger" aria-label="Menu">
+    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><path d="M3 6h18M3 12h18M3 18h18"/></svg>
+  </button>
+  <a class="topbar-brand" href="#top">
+    <img src="assets/lockup-color.svg" alt="Fence">
+    <span class="div"></span>
+    <span class="doc-name">API Integration Guide</span>
+  </a>
+  <span class="ver-pill">API v2</span>
+  <span class="topbar-spacer"></span>
+  <div class="env-toggle" role="group" aria-label="Environment">
+    <button data-env="sandbox" aria-pressed="true"><span class="dot"></span>Sandbox</button>
+    <button data-env="prod" aria-pressed="false"><span class="dot"></span>Production</button>
+  </div>
+  <label class="topbar-search">
+    <svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.8" stroke-linecap="round"><circle cx="11" cy="11" r="7"/><path d="m21 21-4.3-4.3"/></svg>
+    <input type="text" placeholder="Search the guide" aria-label="Search">
+    <span class="kbd">/</span>
+  </label>
+</header>
+
+<div class="layout" id="top">
+
+  <!-- ============================ LEFT NAV ============================ -->
+  <aside class="nav">
+    <nav class="nav-group">
+      <p class="nav-group-title"><span class="n">1</span> Getting Started</p>
+      <a class="nav-link" href="#getting-started">Overview</a>
+      <a class="nav-link sub" href="#environments">Environments</a>
+      <a class="nav-link sub" href="#facility-scope">Facility Scope</a>
+      <a class="nav-link sub" href="#credentials">Credentials</a>
+    </nav>
+    <nav class="nav-group">
+      <p class="nav-group-title"><span class="n">2</span> Authentication</p>
+      <a class="nav-link sub" href="#auth-token">Obtaining an Access Token</a>
+      <a class="nav-link sub" href="#using-token">Using the Token</a>
+      <a class="nav-link sub" href="#auth-model">Authorization Model</a>
+    </nav>
+    <nav class="nav-group">
+      <p class="nav-group-title"><span class="n">3</span> Asset Declaration</p>
+      <a class="nav-link sub" href="#asset-overview">Overview</a>
+      <a class="nav-link sub" href="#step-by-step">Step-by-Step Flow</a>
+      <a class="nav-link sub" href="#fast-track">Fast-Track Flow</a>
+      <a class="nav-link sub" href="#monitoring">Monitoring Progress</a>
+      <a class="nav-link sub" href="#dry-run">Dry Run Mode</a>
+    </nav>
+    <nav class="nav-group">
+      <p class="nav-group-title"><span class="n">4</span> Document Declaration</p>
+      <a class="nav-link sub" href="#doc-register">Document Registration</a>
+      <a class="nav-link sub" href="#upload-status">Upload Status</a>
+    </nav>
+    <nav class="nav-group">
+      <p class="nav-group-title"><span class="n">5</span> Payment Transactions</p>
+      <a class="nav-link sub" href="#payments-bulk">Bulk Create</a>
+      <a class="nav-link sub" href="#txn-types">Transaction Types</a>
+      <a class="nav-link sub" href="#txn-fields">Transaction Fields</a>
+      <a class="nav-link sub" href="#txn-metadata">Metadata by Type</a>
+    </nav>
+    <nav class="nav-group">
+      <p class="nav-group-title"><span class="n">6</span> Schemas Reference</p>
+      <a class="nav-link sub" href="#schemas">All Schemas</a>
+      <a class="nav-link sub" href="#currencies">Supported Currencies</a>
+    </nav>
+    <nav class="nav-group">
+      <p class="nav-group-title"><span class="n">7</span> Error Handling</p>
+      <a class="nav-link sub" href="#status-codes">HTTP Status Codes</a>
+      <a class="nav-link sub" href="#pagination">Pagination</a>
+      <a class="nav-link sub" href="#idempotency">Idempotency</a>
+      <a class="nav-link sub" href="#polling">Polling Strategy</a>
+    </nav>
+  </aside>
+
+  <!-- ============================ CONTENT ============================ -->
+  <main class="content">
+
+    <!-- HERO -->
+    <div class="hero">
+      <div class="hero-leaf"></div>
+      <p class="eyebrow">Fence · Developer Documentation</p>
+      <h1>Client Integration Guide</h1>
+      <p class="lede">Integrate with Fence to declare assets, register supporting documents, and report payment transactions. This guide covers authentication, the declaration pipeline, document verification, and error handling for the <strong>v2</strong> API.</p>
+      <div class="hero-meta">
+        <span class="meta-chip"><span class="k">Audience</span><span class="v">Technical integration teams</span></span>
+        <span class="meta-chip"><span class="k">API Version</span><span class="v mono">v2</span></span>
+        <span class="meta-chip"><span class="k">Active Base URL</span><span class="v mono env-base">https://dev-api.fence.finance</span></span>
+      </div>
+    </div>
+
+    <!-- ============ 1. GETTING STARTED ============ -->
+    <section id="getting-started">
+      <h2 class="sec"><span class="num">01</span> Getting Started</h2>
+      <p class="sec-intro">Fence is a tech-native facility agency for asset-backed finance. The API lets your systems declare portfolio assets, attach verification documents, and record payment transactions against a credit facility in real time.</p>
+
+      <h3 class="sub" id="environments">1.1 Environments</h3>
+      <p>Fence provides two environments. All API paths in this guide are relative to the environment base URL.</p>
+      <div class="table-wrap">
+        <table class="fence-table">
+          <thead><tr><th>Environment</th><th>Base URL</th><th>Purpose</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="sbadge warn"><span class="dot"></span>Sandbox</span></td>
+              <td class="mono nowrap">https://dev-api.fence.finance</td>
+              <td><span class="desc">Integration testing. Non-production data; safe to experiment.</span></td>
+            </tr>
+            <tr>
+              <td><span class="sbadge ok"><span class="dot"></span>Production</span></td>
+              <td class="mono nowrap">https://api.fence.finance</td>
+              <td><span class="desc">Live environment.</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted">For example, <code class="tok">/v2/{deal_id}/documents</code> resolves to <code class="tok"><span class="env-base">https://dev-api.fence.finance</span>/v2/{deal_id}/documents</code> in <span class="env-name">Sandbox</span>. Use the environment toggle in the top bar to switch every example to your target environment.</p>
+
+      <h3 class="sub" id="facility-scope">1.2 Facility Scope</h3>
+      <p>Each facility is identified in Fence by a <code class="tok">deal_id</code> — a UUID that scopes requests to that facility. Most endpoints include <code class="tok">{deal_id}</code> as a path parameter. Fence will provide separate <code class="tok">deal_id</code> values for the Sandbox and Production environments during onboarding.</p>
+      <div class="callout note">
+        <span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></span>
+        <div class="body">The login endpoint (<code class="tok">POST /v1/login/access-token</code>) is the exception: it does <strong>not</strong> take a <code class="tok">deal_id</code>. Authentication is performed with <code class="tok">client_id</code> + <code class="tok">client_secret</code>, and the returned token is implicitly scoped to the facilities your account is linked to.</div>
+      </div>
+
+      <h3 class="sub" id="credentials">1.3 Credentials</h3>
+      <p>API credentials (<code class="tok">client_id</code> + <code class="tok">client_secret</code>) and your <code class="tok">deal_id</code> are provisioned by Fence per environment. To request them, contact your Fence onboarding representative. Fence will provide the credentials in a secure way during onboarding.</p>
+    </section>
+
+    <hr class="sec-divider">
+
+    <!-- ============ 2. AUTHENTICATION ============ -->
+    <section id="authentication">
+      <h2 class="sec"><span class="num">02</span> Authentication</h2>
+      <p class="sec-intro">Fence uses OAuth 2.0. Machine-to-machine integrations should use the Client Credentials grant.</p>
+
+      <h3 class="sub" id="auth-token">Obtaining an Access Token</h3>
+      <div class="callout tip">
+        <span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V17h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2Z"/></svg></span>
+        <div class="body">The login endpoint does not require a <code class="tok">deal_id</code>. Authentication is performed with <code class="tok">client_id</code> + <code class="tok">client_secret</code>, and the returned token is implicitly scoped to the deals your account is linked to.</div>
+      </div>
+      <p>Client Credentials Grant (recommended for machine-to-machine integrations):</p>
+      <div class="endpoint">
+        <span class="method post">POST</span>
+        <span class="path"><span class="base env-base">https://dev-api.fence.finance</span>/v1/login/access-token</span>
+        <button class="copy light copy-ep" data-copy="endpoint" aria-label="Copy endpoint"></button>
+      </div>
+      <div class="code">
+        <div class="code-head"><span class="lang">HTTP Request</span><button class="copy" data-copy="code" data-label="Copy"></button></div>
+        <pre><code data-lang="http">POST /v1/login/access-token
+Content-Type: application/x-www-form-urlencoded
+
+grant_type=client_credentials
+&client_id={your_client_id}
+&client_secret={your_client_secret}</code></pre>
+      </div>
+      <div class="code">
+        <div class="code-head"><span class="lang">Response</span><span class="resp"><span class="dot"></span>200 OK</span><button class="copy" data-copy="code" data-label="Copy"></button></div>
+        <pre><code data-lang="json">{
+  "access_token": "eyJraWQiOi...",
+  "token_type": "Bearer",
+  "expires_in": 3600
+}</code></pre>
+      </div>
+
+      <h3 class="sub" id="using-token">Using the Token</h3>
+      <p>Include the token in every subsequent request:</p>
+      <div class="code">
+        <div class="code-head"><span class="lang">Header</span><button class="copy" data-copy="code" data-label="Copy"></button></div>
+        <pre><code data-lang="http">Authorization: Bearer {access_token}</code></pre>
+      </div>
+
+      <h3 class="sub" id="auth-model">Authorization Model</h3>
+      <p>Clients are authorized at the deal level. Your credentials grant access only to the deals your account is linked to.</p>
+      <ul class="fence-list">
+        <li><strong>Actions:</strong> <code class="tok">read</code>, <code class="tok">write</code>, <code class="tok">create</code>, <code class="tok">declare</code> — each endpoint requires a specific action.</li>
+        <li>Attempting to access a deal you're not authorized for returns <span class="httpcode s4">403 Forbidden</span>.</li>
+      </ul>
+    </section>
+
+    <hr class="sec-divider">
+
+    <!-- ============ 3. ASSET DECLARATION ============ -->
+    <section id="asset-declaration">
+      <h2 class="sec"><span class="num">03</span> Asset Declaration</h2>
+
+      <h3 class="sub" id="asset-overview">3.1 Overview</h3>
+      <p>Asset declaration is the process of submitting your portfolio of assets (e.g., loans, receivables, advances) to Fence. Fence validates, persists, and processes these assets through a configurable pipeline that can include eligibility checks, borrow base calculations, and expected payment generation.</p>
+      <p>Two approaches are available. Both trigger the same processing pipeline and produce the same results.</p>
+      <div class="card-grid">
+        <div class="fcard">
+          <div class="leaf-bg"></div>
+          <p class="tag">Approach A</p>
+          <h5>Step-by-step</h5>
+          <p>Best for large portfolios and incremental asset addition. Fine-grained control over the declaration lifecycle.</p>
+          <span class="ep-mini">/v2/portfolio_declarations/</span>
+        </div>
+        <div class="fcard">
+          <div class="leaf-bg"></div>
+          <p class="tag">Approach B</p>
+          <h5>Fast-track</h5>
+          <p>Best for simpler integrations and single-call declaration. Create, add assets, and trigger in one request.</p>
+          <span class="ep-mini">/v2/declarations/</span>
+        </div>
+      </div>
+
+      <h3 class="sub" id="step-by-step">3.2 Step-by-Step Declaration Flow</h3>
+      <p>This approach gives you fine-grained control over the declaration lifecycle.</p>
+
+      <h4 class="subsub" id="step1">Step 1 · Create a Portfolio Declaration</h4>
+      <div class="endpoint">
+        <span class="method post">POST</span>
+        <span class="path"><span class="base env-base">https://dev-api.fence.finance</span>/v2/portfolio_declarations/</span>
+        <button class="copy light copy-ep" data-copy="endpoint" aria-label="Copy endpoint"></button>
+      </div>
+      <div class="code">
+        <div class="code-head"><span class="lang">Request Body</span><span class="resp" style="color:var(--fg-on-dark-2)">application/json</span><button class="copy" data-copy="code" data-label="Copy"></button></div>
+        <pre><code data-lang="json">{
+  "name": "Daily Portfolio Snapshot 2026-04-07",
+  "deal_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890"
+}</code></pre>
+      </div>
+      <div class="code">
+        <div class="code-head"><span class="lang">Response</span><span class="resp"><span class="dot"></span>201 Created</span><button class="copy" data-copy="code" data-label="Copy"></button></div>
+        <pre><code data-lang="json">{
+  "id": "d4e5f6a7-b8c9-0123-4567-890abcdef012",
+  "deal_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "name": "Daily Portfolio Snapshot 2026-04-07",
+  "asset_count": null,
+  "created_at": "2026-04-07T10:00:00Z",
+  "updated_at": "2026-04-07T10:00:00Z"
+}</code></pre>
+      </div>
+
+      <h4 class="subsub" id="step2">Step 2 · Add Assets to the Declaration</h4>
+      <p>You can call this endpoint multiple times to add assets in batches.</p>
+      <div class="endpoint">
+        <span class="method post">POST</span>
+        <span class="path"><span class="base env-base">https://dev-api.fence.finance</span>/v2/portfolio_declarations/{portfolio_declaration_id}/assets</span>
+        <button class="copy light copy-ep" data-copy="endpoint" aria-label="Copy endpoint"></button>
+      </div>
+      <div class="code">
+        <div class="code-head"><span class="lang">Request Body — list of assets</span><button class="copy" data-copy="code" data-label="Copy"></button></div>
+        <pre><code data-lang="json">[
+  {
+    "external_id": "ADV-2026-001234",
+    "contract_external_id": null,
+    "properties": {
+      "origination_installment_id": "INS-78901",
+      "organization_name": "Acme Corp",
+      "employer_name": "Acme Corp",
+      "employee_id": "EMP-456",
+      "user_state": "CA",
+      "user_country": "US",
+      "earned_wage": 2500.00,
+      "total_principal_amount": 800.00,
+      "total_fee_amount": 12.00,
+      "outstanding_principal_amount": 800.00,
+      "outstanding_fee_amount": 12.00,
+      "outstanding_amount": 812.00,
+      "transaction_date": "2026-04-01",
+      "due_date": "2026-04-15",
+      "currency": "USD",
+      "status": "active"
+    }
+  }
+]</code></pre>
+      </div>
+      <p><strong>Key points:</strong></p>
+      <ul class="fence-list">
+        <li><code class="tok">external_id</code> — Your unique identifier for the asset. Used for idempotency (upsert on re-declaration).</li>
+        <li><code class="tok">contract_external_id</code> — Optional. Links the asset to a specific contract. If <code class="tok">null</code>, Fence may auto-create a default umbrella contract (deal-dependent).</li>
+        <li><code class="tok">properties</code> — Deal-specific fields. The exact schema is agreed upon during onboarding and validated by Fence during the declaration pipeline.</li>
+      </ul>
+
+      <h4 class="subsub" id="step3">Step 3 · Trigger the Declaration</h4>
+      <div class="endpoint">
+        <span class="method post">POST</span>
+        <span class="path"><span class="base env-base">https://dev-api.fence.finance</span>/v2/portfolio_declarations/{portfolio_declaration_id}/declare</span>
+        <button class="copy light copy-ep" data-copy="endpoint" aria-label="Copy endpoint"></button>
+      </div>
+      <div class="code">
+        <div class="code-head"><span class="lang">Request Body</span><button class="copy" data-copy="code" data-label="Copy"></button></div>
+        <pre><code data-lang="json">{
+  "dry_run": false
+}</code></pre>
+      </div>
+      <div class="code">
+        <div class="code-head"><span class="lang">Response</span><span class="resp"><span class="dot"></span>202 Accepted</span><button class="copy" data-copy="code" data-label="Copy"></button></div>
+        <pre><code data-lang="json">{
+  "id": "b1c2d3e4-f5a6-7890-bcde-f01234567890",
+  "status": "QUEUED",
+  "dry_run": false
+}</code></pre>
+      </div>
+      <p class="muted">The <span class="httpcode s2">202 Accepted</span> status indicates the declaration has been queued for asynchronous processing. Use the <code class="tok">id</code> to monitor progress.</p>
+
+      <h3 class="sub" id="fast-track">3.3 Fast-Track Declaration Flow</h3>
+      <p>A single endpoint that creates a portfolio declaration, adds assets, and triggers the pipeline in one call.</p>
+      <div class="endpoint">
+        <span class="method post">POST</span>
+        <span class="path"><span class="base env-base">https://dev-api.fence.finance</span>/v2/declarations/</span>
+        <button class="copy light copy-ep" data-copy="endpoint" aria-label="Copy endpoint"></button>
+      </div>
+      <div class="code">
+        <div class="code-head"><span class="lang">Request Body</span><button class="copy" data-copy="code" data-label="Copy"></button></div>
+        <pre><code data-lang="json">{
+  "deal_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "dry_run": false,
+  "assets": [
+    {
+      "external_id": "ADV-2026-001234",
+      "properties": {
+        "origination_installment_id": "INS-78901",
+        "organization_name": "Acme Corp",
+        "employee_id": "EMP-456",
+        "user_state": "CA",
+        "user_country": "US",
+        "total_principal_amount": 800.00,
+        "total_fee_amount": 12.00,
+        "outstanding_amount": 812.00,
+        "transaction_date": "2026-04-01",
+        "due_date": "2026-04-15",
+        "currency": "USD",
+        "status": "active"
+      }
+    }
+  ]
+}</code></pre>
+      </div>
+      <div class="callout warn">
+        <span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg></span>
+        <div class="body"><strong>Batching recommendation.</strong> The declaration queue processes declarations for a given deal sequentially. Each declaration has fixed infrastructure overhead, so sending many single-asset declarations will create significant backlog. Instead, batch assets over a period (e.g., every 15 minutes, hourly, or daily depending on your reporting needs) and send them in a single declaration.</div>
+      </div>
+
+      <h3 class="sub" id="monitoring">3.4 Monitoring Declaration Progress</h3>
+
+      <h4 class="subsub" id="list-runs">List Declaration Runs for a Deal</h4>
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path"><span class="base env-base">https://dev-api.fence.finance</span>/v2/declarations/?deal_id={deal_id}&page=1&size=20</span>
+        <button class="copy light copy-ep" data-copy="endpoint" aria-label="Copy endpoint"></button>
+      </div>
+      <p><strong>Declaration Run Statuses:</strong></p>
+      <div class="table-wrap">
+        <table class="fence-table">
+          <thead><tr><th>Status</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td><span class="sbadge neutral"><span class="dot"></span>QUEUED</span></td><td><span class="desc">Declaration received, waiting for processing.</span></td></tr>
+            <tr><td><span class="sbadge info"><span class="dot"></span>PROCESSING</span></td><td><span class="desc">Pipeline is actively processing assets.</span></td></tr>
+            <tr><td><span class="sbadge ok"><span class="dot"></span>COMPLETED</span></td><td><span class="desc">All pipeline steps finished successfully. All assets are declarable.</span></td></tr>
+            <tr><td><span class="sbadge warn"><span class="dot"></span>COMPLETED_WITH_ERRORS</span></td><td><span class="desc">Pipeline finished but some assets are not declarable (e.g., failed eligibility). Check per-asset results.</span></td></tr>
+            <tr><td><span class="sbadge danger"><span class="dot"></span>FAILED</span></td><td><span class="desc">Pipeline encountered a critical error. Check <code class="tok">error_details</code>.</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4 class="subsub" id="get-run">Get a Specific Declaration Run</h4>
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path"><span class="base env-base">https://dev-api.fence.finance</span>/v2/declarations/{run_id}</span>
+        <button class="copy light copy-ep" data-copy="endpoint" aria-label="Copy endpoint"></button>
+      </div>
+
+      <h4 class="subsub" id="list-assets">List Per-Asset Results</h4>
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path"><span class="base env-base">https://dev-api.fence.finance</span>/v2/declarations/{run_id}/assets?page=1&size=50</span>
+        <button class="copy light copy-ep" data-copy="endpoint" aria-label="Copy endpoint"></button>
+      </div>
+      <p><strong>Per-Asset Result Statuses:</strong></p>
+      <div class="table-wrap">
+        <table class="fence-table">
+          <thead><tr><th>Status</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><span class="sbadge ok"><span class="dot"></span>SUCCESSFUL</span></td><td><span class="desc">Asset passed this pipeline step.</span></td></tr>
+            <tr><td><span class="sbadge warn"><span class="dot"></span>UNSUCCESSFUL</span></td><td><span class="desc">Asset was processed but did not meet the criteria (e.g., failed eligibility). Still created but flagged.</span></td></tr>
+            <tr><td><span class="sbadge danger"><span class="dot"></span>FAILED</span></td><td><span class="desc">An error occurred processing this asset at this step.</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p><strong>Pipeline Steps:</strong></p>
+      <div class="table-wrap">
+        <table class="fence-table">
+          <thead><tr><th>Step Name</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="mono nowrap">ASSET_VERIFICATION</td><td><span class="desc">Validates asset against deal-specific eligibility criteria.</span></td></tr>
+            <tr><td class="mono nowrap">BORROW_BASE_VERIFICATION</td><td><span class="desc">Evaluates asset for borrow base inclusion (if applicable).</span></td></tr>
+            <tr><td class="mono nowrap">ASSET_CREATION</td><td><span class="desc">Creates or updates the asset in Fence. <code class="tok">details.operation</code> is <code class="tok">created</code> or <code class="tok">updated</code>.</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h4 class="subsub" id="get-asset">Get a Single Asset Result</h4>
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path"><span class="base env-base">https://dev-api.fence.finance</span>/v2/declarations/{run_id}/assets/{asset_id}</span>
+        <button class="copy light copy-ep" data-copy="endpoint" aria-label="Copy endpoint"></button>
+      </div>
+
+      <h3 class="sub" id="dry-run">3.5 Dry Run Mode</h3>
+      <p>Both declaration flows support <code class="tok">dry_run: true</code>. In dry-run mode:</p>
+      <ul class="fence-list">
+        <li>The full validation pipeline runs (schema validation, eligibility checks, borrow base).</li>
+        <li>No data is persisted — assets are not created/updated, no expected payments are generated.</li>
+        <li>Results are still available via the monitoring endpoints.</li>
+      </ul>
+      <p>Use this to validate your data before committing.</p>
+      <p><strong>Recommended workflow:</strong></p>
+      <ol class="fence-list">
+        <li>Submit a declaration with <code class="tok">dry_run: true</code>.</li>
+        <li>Inspect per-asset results for validation issues.</li>
+        <li>Fix any issues in your source data.</li>
+        <li>Submit again with <code class="tok">dry_run: false</code>.</li>
+      </ol>
+    </section>
+
+    <hr class="sec-divider">
+
+    <!-- ============ 4. DOCUMENT DECLARATION ============ -->
+    <section id="document-declaration">
+      <h2 class="sec"><span class="num">04</span> Document Declaration</h2>
+      <p class="sec-intro">For deals that require verification, Fence validates each receivable against supporting portfolio documents (e.g., loan agreements, repayment authorizations, invoices). Clients register documents in batch, upload the files to S3 using the returned presigned URLs, and Fence processes them asynchronously.</p>
+      <div class="callout tip">
+        <span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V17h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2Z"/></svg></span>
+        <div class="body"><code class="tok">document_external_id</code> is the join key Fence uses to reconcile each document with its declared asset at verification time. The value convention (e.g., matching a specific asset field) is agreed during onboarding.</div>
+      </div>
+
+      <h3 class="sub" id="doc-register">4.1 Document Registration</h3>
+      <p>Register one or more documents in a single call. Fence creates the document records and returns presigned S3 URLs the client PUTs the file bytes to.</p>
+      <div class="endpoint">
+        <span class="method post">POST</span>
+        <span class="path"><span class="base env-base">https://dev-api.fence.finance</span>/v2/{deal_id}/documents</span>
+        <button class="copy light copy-ep" data-copy="endpoint" aria-label="Copy endpoint"></button>
+      </div>
+      <div class="code">
+        <div class="code-head"><span class="lang">Request Body</span><button class="copy" data-copy="code" data-label="Copy"></button></div>
+        <pre><code data-lang="json">{
+  "documents": [
+    {
+      "document_category": "loan_agreement",
+      "document_external_id": "DOC-2026-001234",
+      "file_name_with_ext": "agreement.pdf",
+      "title": "Loan Agreement - Acme Borrower"
+    }
+  ]
+}</code></pre>
+      </div>
+      <p><strong>Request Field Reference:</strong></p>
+      <div class="table-wrap">
+        <table class="fence-table">
+          <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="mono nowrap">document_category</td>
+              <td><span class="type-pill">string</span></td>
+              <td><span class="req yes">Yes</span></td>
+              <td><span class="desc">Category of the document (e.g., <code class="tok">loan_agreement</code>, <code class="tok">invoice</code>, <code class="tok">repayment_authorization</code>). Agreed during onboarding.</span></td>
+            </tr>
+            <tr>
+              <td class="mono nowrap">document_external_id</td>
+              <td><span class="type-pill">string</span></td>
+              <td><span class="req yes">Yes</span></td>
+              <td><span class="desc">Client-provided unique identifier. Used as the join key to reconcile this document with its declared asset during verification; the specific value convention is agreed during onboarding.</span></td>
+            </tr>
+            <tr>
+              <td class="mono nowrap">file_name_with_ext</td>
+              <td><span class="type-pill">string</span></td>
+              <td><span class="req yes">Yes</span></td>
+              <td><span class="desc">Filename including extension (e.g., <code class="tok">agreement.pdf</code>).</span></td>
+            </tr>
+            <tr>
+              <td class="mono nowrap">title</td>
+              <td><span class="type-pill">string</span></td>
+              <td><span class="req no">No</span></td>
+              <td><span class="desc">Human-readable title. Defaults to filename if omitted.</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code">
+        <div class="code-head"><span class="lang">Response</span><span class="resp"><span class="dot"></span>201 Created</span><button class="copy" data-copy="code" data-label="Copy"></button></div>
+        <pre><code data-lang="json">{
+  "documents": [
+    {
+      "document_external_id": "DOC-2026-001234",
+      "presigned_url": "https://s3.amazonaws.com/...",
+      "expires_at": "2026-04-07T11:00:00Z",
+      "uploaded_at": null
+    }
+  ]
+}</code></pre>
+      </div>
+      <p>For each document in the response, PUT the file bytes to the returned <code class="tok">presigned_url</code> before <code class="tok">expires_at</code>. Presigned URLs are valid for 1 hour from issuance.</p>
+      <div class="endpoint">
+        <span class="method put">PUT</span>
+        <span class="path">{presigned_url}</span>
+        <button class="copy light copy-ep" data-copy="endpoint" aria-label="Copy endpoint"></button>
+      </div>
+      <div class="callout warn">
+        <span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg></span>
+        <div class="body">Re-registering with an existing <code class="tok">document_external_id</code> returns <span class="httpcode s4">422 Unprocessable Entity</span>. To retry an upload whose URL has expired or whose PUT failed, use <a class="inline" href="#upload-status">Section 4.2 Upload Status</a> to request a fresh presigned URL — do not re-register the document.</div>
+      </div>
+
+      <h3 class="sub" id="upload-status">4.2 Upload Status</h3>
+      <p>Use this endpoint for two purposes: <strong>(1)</strong> confirming Fence has received each file from S3, and <strong>(2)</strong> retrieving a fresh presigned URL for any document that has not yet been uploaded.</p>
+      <p><code class="tok">uploaded_at</code> is populated once Fence registers the S3 event. Until then, each call to this endpoint returns a newly-signed <code class="tok">presigned_url</code> with a fresh <code class="tok">expires_at</code> one hour in the future, so you can safely retry uploads that failed or whose URL has expired without re-registering the document.</p>
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path"><span class="base env-base">https://dev-api.fence.finance</span>/v2/{deal_id}/documents?document_external_ids=DOC-2026-001234,DOC-2026-001235</span>
+        <button class="copy light copy-ep" data-copy="endpoint" aria-label="Copy endpoint"></button>
+      </div>
+      <div class="code">
+        <div class="code-head"><span class="lang">Response</span><span class="resp"><span class="dot"></span>200 OK</span><button class="copy" data-copy="code" data-label="Copy"></button></div>
+        <pre><code data-lang="json">{
+  "documents": [
+    {
+      "document_external_id": "DOC-2026-001234",
+      "presigned_url": null,
+      "expires_at": null,
+      "uploaded_at": "2026-04-07T10:15:32Z"
+    },
+    {
+      "document_external_id": "DOC-2026-001235",
+      "presigned_url": "https://s3.amazonaws.com/...",
+      "expires_at": "2026-04-07T11:00:00Z",
+      "uploaded_at": null
+    }
+  ]
+}</code></pre>
+      </div>
+      <p>Two mutually exclusive states are returned per document:</p>
+      <div class="table-wrap">
+        <table class="fence-table">
+          <thead><tr><th>State</th><th>Fields populated</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr>
+              <td><span class="sbadge warn"><span class="dot"></span>Pending</span></td>
+              <td><span class="desc"><code class="tok">presigned_url</code> · <code class="tok">expires_at</code>; <code class="tok">uploaded_at</code> is <code class="tok">null</code></span></td>
+              <td><span class="desc">Document registered but not yet uploaded. The URL is freshly-signed on every call — retry as needed.</span></td>
+            </tr>
+            <tr>
+              <td><span class="sbadge ok"><span class="dot"></span>Uploaded</span></td>
+              <td><span class="desc"><code class="tok">uploaded_at</code>; <code class="tok">presigned_url</code> and <code class="tok">expires_at</code> are <code class="tok">null</code></span></td>
+              <td><span class="desc">File has been received by Fence. No new URL will ever be issued for this document — the record is now immutable for verification.</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted">Unrecognized <code class="tok">document_external_id</code> values are silently omitted from the response (no error). The endpoint is safe to call repeatedly; it has no side effects on the document record.</p>
+    </section>
+
+    <hr class="sec-divider">
+
+    <!-- ============ 5. PAYMENT TRANSACTION DECLARATION ============ -->
+    <section id="payment-transactions">
+      <h2 class="sec"><span class="num">05</span> Payment Transaction Declaration</h2>
+      <p class="sec-intro">Payment transactions represent financial movements associated with a deal — intakes (incoming payments), expenses, repayments, outbound transfers, dispositions, and more.</p>
+      <p>Base URL — all payment transaction endpoints are scoped to a deal:</p>
+      <div class="endpoint">
+        <span class="method get" style="visibility:hidden;width:0;padding:0;margin:0">BASE</span>
+        <span class="path"><span class="base env-base">https://dev-api.fence.finance</span>/v2/{deal_id}/payments</span>
+        <button class="copy light copy-ep" data-copy="endpoint" aria-label="Copy endpoint"></button>
+      </div>
+
+      <h3 class="sub" id="payments-bulk">5.1 Bulk Create</h3>
+      <p>Create multiple payment transactions in a single request. The processing mode is controlled by the <code class="tok">dry_run</code> query parameter:</p>
+      <div class="endpoint">
+        <span class="method post">POST</span>
+        <span class="path"><span class="base env-base">https://dev-api.fence.finance</span>/v2/{deal_id}/payments/bulk?dry_run=false</span>
+        <button class="copy light copy-ep" data-copy="endpoint" aria-label="Copy endpoint"></button>
+      </div>
+      <div class="code">
+        <div class="code-head"><span class="lang">Request Body</span><button class="copy" data-copy="code" data-label="Copy"></button></div>
+        <pre><code data-lang="json">{
+  "data": [
+    {
+      "external_id": "TXN-20260407-001",
+      "amount": 812.00,
+      "transaction_date": "2026-04-07T14:30:00Z",
+      "currency": "USD",
+      "transaction_type": "intake",
+      "from_": "Borrower Account",
+      "to_": "SPV Collection Account",
+      "memo": "Repayment for advance ADV-2026-001234",
+      "bank_account_id": "e5f6a7b8-c9d0-1234-ef56-7890abcdef01",
+      "metadata": {
+        "metadata_type": "intake",
+        "type": "repayment_collection"
+      }
+    }
+  ]
+}</code></pre>
+      </div>
+      <p><strong>Query Parameters:</strong></p>
+      <div class="table-wrap">
+        <table class="fence-table">
+          <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr>
+              <td class="mono nowrap">dry_run</td>
+              <td><span class="type-pill">bool</span></td>
+              <td><span class="mono">true</span></td>
+              <td><span class="desc">If <code class="tok">true</code>, validates without persisting (synchronous <span class="httpcode s2">200</span>). If <code class="tok">false</code>, validates and enqueues for async processing (<span class="httpcode s2">202</span>). Set to <code class="tok">false</code> explicitly to create transactions.</span></td>
+            </tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="sub" id="txn-types">Transaction Types</h3>
+      <div class="table-wrap">
+        <table class="fence-table">
+          <thead><tr><th>Type</th><th>Description</th><th>Metadata Type</th></tr></thead>
+          <tbody>
+            <tr><td class="mono nowrap">intake</td><td><span class="desc">Incoming payment to the deal (collections, deposits)</span></td><td class="mono">intake</td></tr>
+            <tr><td class="mono nowrap">intake_meta</td><td><span class="desc">Metadata-only intake (no financial movement)</span></td><td class="mono">intake_meta</td></tr>
+            <tr><td class="mono nowrap">expense</td><td><span class="desc">Fee or expense charged to the deal</span></td><td class="mono">expense</td></tr>
+            <tr><td class="mono nowrap">repayment</td><td><span class="desc">Repayment from borrower to lender</span></td><td class="mono">repayment</td></tr>
+            <tr><td class="mono nowrap">outbound</td><td><span class="desc">Outgoing payment from the deal</span></td><td class="mono">outgoing_type</td></tr>
+            <tr><td class="mono nowrap">disposition</td><td><span class="desc">Asset disposition event</span></td><td class="muted">—</td></tr>
+            <tr><td class="mono nowrap">borrow</td><td><span class="desc">Borrowing/draw event</span></td><td class="mono">borrow</td></tr>
+            <tr><td class="mono nowrap">utilization</td><td><span class="desc">Facility utilization event</span></td><td class="mono">utilization</td></tr>
+            <tr><td class="mono nowrap">waterfall_payment</td><td><span class="desc">Waterfall distribution payment</span></td><td class="muted">—</td></tr>
+            <tr><td class="mono nowrap">outgoing_type</td><td><span class="desc">General outgoing payment</span></td><td class="mono">outgoing_type</td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="sub" id="txn-fields">Transaction Fields</h3>
+      <div class="table-wrap">
+        <table class="fence-table">
+          <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="mono nowrap">external_id</td><td><span class="type-pill">string</span></td><td><span class="req yes">Yes</span></td><td><span class="desc">Your unique identifier for this transaction.</span></td></tr>
+            <tr><td class="mono nowrap">amount</td><td><span class="type-pill">float</span></td><td><span class="req yes">Yes</span></td><td><span class="desc">Transaction amount.</span></td></tr>
+            <tr><td class="mono nowrap">transaction_date</td><td><span class="type-pill">datetime</span></td><td><span class="req yes">Yes</span></td><td><span class="desc">When the transaction occurred.</span></td></tr>
+            <tr><td class="mono nowrap">currency</td><td><span class="type-pill">string</span></td><td><span class="req yes">Yes</span></td><td><span class="desc">ISO currency code (e.g., <code class="tok">"USD"</code>).</span></td></tr>
+            <tr><td class="mono nowrap">transaction_type</td><td><span class="type-pill">string</span></td><td><span class="req no">No</span></td><td><span class="desc">One of the transaction types above.</span></td></tr>
+            <tr><td class="mono nowrap">from_</td><td><span class="type-pill">string</span></td><td><span class="req no">No</span></td><td><span class="desc">Source account identifier.</span></td></tr>
+            <tr><td class="mono nowrap">to_</td><td><span class="type-pill">string</span></td><td><span class="req no">No</span></td><td><span class="desc">Destination account identifier.</span></td></tr>
+            <tr><td class="mono nowrap">memo</td><td><span class="type-pill">string</span></td><td><span class="req no">No</span></td><td><span class="desc">Description or notes.</span></td></tr>
+            <tr><td class="mono nowrap">bank_account_id</td><td><span class="type-pill">UUID</span></td><td><span class="req no">No</span></td><td><span class="desc">Associated bank account in Fence.</span></td></tr>
+            <tr><td class="mono nowrap">iban</td><td><span class="type-pill">string</span></td><td><span class="req no">No</span></td><td><span class="desc">Recipient IBAN.</span></td></tr>
+            <tr><td class="mono nowrap">routing_number</td><td><span class="type-pill">string</span></td><td><span class="req no">No</span></td><td><span class="desc">Recipient routing number (when no IBAN).</span></td></tr>
+            <tr><td class="mono nowrap">account_number</td><td><span class="type-pill">string</span></td><td><span class="req no">No</span></td><td><span class="desc">Recipient account number (when no IBAN).</span></td></tr>
+            <tr><td class="mono nowrap">metadata</td><td><span class="type-pill">object</span></td><td><span class="req no">No</span></td><td><span class="desc">Type-specific metadata (see below).</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="sub" id="txn-metadata">Metadata by Transaction Type</h3>
+      <div class="card-grid">
+        <div class="code">
+          <div class="code-head"><span class="lang">Intake</span><button class="copy" data-copy="code" data-label="Copy"></button></div>
+          <pre><code data-lang="json">{ "metadata_type": "intake", "type": "repayment_collection" }</code></pre>
+        </div>
+        <div class="code">
+          <div class="code-head"><span class="lang">Repayment</span><button class="copy" data-copy="code" data-label="Copy"></button></div>
+          <pre><code data-lang="json">{ "metadata_type": "repayment", "repayment_type": "scheduled" }</code></pre>
+        </div>
+      </div>
+      <div class="code">
+        <div class="code-head"><span class="lang">Expense</span><button class="copy" data-copy="code" data-label="Copy"></button></div>
+        <pre><code data-lang="json">{
+  "metadata_type": "expense",
+  "category": "servicing",
+  "description": "Monthly servicing fee"
+}</code></pre>
+      </div>
+      <div class="code">
+        <div class="code-head"><span class="lang">Borrow</span><button class="copy" data-copy="code" data-label="Copy"></button></div>
+        <pre><code data-lang="json">{
+  "metadata_type": "borrow",
+  "borrow_type": "initial_draw",
+  "tranche_name": "Tranche A"
+}</code></pre>
+      </div>
+      <div class="code">
+        <div class="code-head"><span class="lang">Utilization</span><button class="copy" data-copy="code" data-label="Copy"></button></div>
+        <pre><code data-lang="json">{
+  "metadata_type": "utilization",
+  "utilization_type": "draw",
+  "tranche_name": "Tranche A"
+}</code></pre>
+      </div>
+      <div class="code">
+        <div class="code-head"><span class="lang">Outgoing Type</span><button class="copy" data-copy="code" data-label="Copy"></button></div>
+        <pre><code data-lang="json">{
+  "metadata_type": "outgoing_type",
+  "outgoing_type": "distribution",
+  "payment_date": "2026-04-07T00:00:00Z"
+}</code></pre>
+      </div>
+      <div class="callout note">
+        <span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></span>
+        <div class="body">All metadata types accept an optional <code class="tok">deal_specific_metadata</code> dict for custom fields.</div>
+      </div>
+    </section>
+
+    <hr class="sec-divider">
+
+    <!-- ============ 6. SCHEMAS REFERENCE ============ -->
+    <section id="schemas-reference">
+      <h2 class="sec"><span class="num">06</span> Schemas Reference</h2>
+      <p class="sec-intro" id="schemas">Canonical request and response shapes for the declaration endpoints.</p>
+
+      <h4 class="subsub">Asset Declaration — Request</h4>
+      <div class="schema">
+        <div class="schema-head"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>CreatePortfolioDeclarationAssetItem</div>
+        <div class="schema-body">
+          <div class="field"><span class="name">external_id</span><span class="meta"><span class="ftype">string</span><span class="fnote">Required, min 1 char</span></span></div>
+          <div class="field"><span class="name">contract_external_id</span><span class="meta"><span class="ftype">string | null</span></span></div>
+          <div class="field"><span class="name">properties</span><span class="meta"><span class="ftype">object | null</span><span class="fnote">Deal-specific fields</span></span></div>
+        </div>
+      </div>
+
+      <h4 class="subsub">Asset Declaration — Fast Track Request</h4>
+      <div class="schema">
+        <div class="schema-head"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>FastTrackDeclarationApiInput</div>
+        <div class="schema-body">
+          <div class="field"><span class="name">deal_id</span><span class="meta"><span class="ftype">UUID</span><span class="fnote">Required</span></span></div>
+          <div class="field"><span class="name">dry_run</span><span class="meta"><span class="ftype">boolean</span><span class="fnote">Default: false</span></span></div>
+          <div class="field"><span class="name">assets</span><span class="meta"><span class="ftype">list of objects</span><span class="fnote">Required, min 1 item. Each object must contain at minimum: <code class="tok">external_id</code> (string) and <code class="tok">properties</code> (object, deal-specific).</span></span></div>
+        </div>
+      </div>
+
+      <h4 class="subsub">Portfolio Declaration Response</h4>
+      <div class="schema">
+        <div class="schema-head"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>PortfolioDeclarationApiResponse</div>
+        <div class="schema-body">
+          <div class="field"><span class="name">id</span><span class="meta"><span class="ftype">UUID</span></span></div>
+          <div class="field"><span class="name">deal_id</span><span class="meta"><span class="ftype">UUID</span></span></div>
+          <div class="field"><span class="name">name</span><span class="meta"><span class="ftype">string | null</span></span></div>
+          <div class="field"><span class="name">asset_count</span><span class="meta"><span class="ftype">integer | null</span></span></div>
+          <div class="field"><span class="name">created_at</span><span class="meta"><span class="ftype">datetime</span></span></div>
+          <div class="field"><span class="name">updated_at</span><span class="meta"><span class="ftype">datetime</span></span></div>
+        </div>
+      </div>
+
+      <h4 class="subsub">Declaration Run Response</h4>
+      <div class="schema">
+        <div class="schema-head"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>DeclarationRunDetailApiResponse</div>
+        <div class="schema-body">
+          <div class="field"><span class="name">id</span><span class="meta"><span class="ftype">UUID</span></span></div>
+          <div class="field"><span class="name">portfolio_declaration_id</span><span class="meta"><span class="ftype">UUID</span></span></div>
+          <div class="field"><span class="name">dry_run</span><span class="meta"><span class="ftype">boolean</span></span></div>
+          <div class="field"><span class="name">status</span><span class="meta"><span class="ftype">"QUEUED" | "PROCESSING" | "COMPLETED" | "COMPLETED_WITH_ERRORS" | "FAILED"</span></span></div>
+          <div class="field"><span class="name">summary</span><span class="meta"><span class="ftype">object | null</span></span></div>
+          <div class="field"><span class="name">error_details</span><span class="meta"><span class="ftype">object | null</span></span></div>
+          <div class="field"><span class="name">started_at</span><span class="meta"><span class="ftype">datetime | null</span></span></div>
+          <div class="field"><span class="name">completed_at</span><span class="meta"><span class="ftype">datetime | null</span></span></div>
+          <div class="field"><span class="name">created_at</span><span class="meta"><span class="ftype">datetime | null</span></span></div>
+          <div class="field"><span class="name">updated_at</span><span class="meta"><span class="ftype">datetime | null</span></span></div>
+        </div>
+      </div>
+
+      <h4 class="subsub">Per-Asset Result Response</h4>
+      <div class="schema">
+        <div class="schema-head"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>DeclarationRunAssetResultApiResponse</div>
+        <div class="schema-body">
+          <div class="field"><span class="name">asset_id</span><span class="meta"><span class="ftype">UUID</span></span></div>
+          <div class="field"><span class="name">external_asset_id</span><span class="meta"><span class="ftype">string</span></span></div>
+          <div class="field"><span class="name">contract_external_id</span><span class="meta"><span class="ftype">string | null</span></span></div>
+          <div class="field"><span class="name">properties</span><span class="meta"><span class="ftype">object | null</span></span></div>
+          <div class="field"><span class="name">is_eligible</span><span class="meta"><span class="ftype">boolean | null</span></span></div>
+          <div class="field"><span class="name">is_declarable</span><span class="meta"><span class="ftype">boolean | null</span></span></div>
+          <div class="field"><span class="name">results</span><span class="meta"><span class="ftype">list of AssetResultApiResponse</span><span class="fnote">Each result: <code class="tok">id</code> (UUID), <code class="tok">step_name</code> (string), <code class="tok">status</code> ("SUCCESSFUL" | "UNSUCCESSFUL" | "FAILED"), <code class="tok">details</code> (object | null).</span></span></div>
+        </div>
+      </div>
+
+      <h4 class="subsub" id="currencies">Supported Currencies</h4>
+      <p class="muted">54 ISO currency codes are accepted in the <code class="tok">currency</code> field.</p>
+      <div class="cur-grid">
+        <span class="cur">ALL</span><span class="cur">ARS</span><span class="cur">AUD</span><span class="cur">BGN</span><span class="cur">BOB</span><span class="cur">BRL</span><span class="cur">BZD</span><span class="cur">CAD</span><span class="cur">CHF</span><span class="cur">CLP</span><span class="cur">CNY</span><span class="cur">COP</span><span class="cur">CRC</span><span class="cur">CZK</span><span class="cur">DKK</span><span class="cur">EGP</span><span class="cur hl">EUR</span><span class="cur hl">GBP</span><span class="cur">GEL</span><span class="cur">GTQ</span><span class="cur">HKD</span><span class="cur">HUF</span><span class="cur">IDR</span><span class="cur">ILS</span><span class="cur">INR</span><span class="cur">ISK</span><span class="cur">JPY</span><span class="cur">KHR</span><span class="cur">KRW</span><span class="cur">LAK</span><span class="cur">LKR</span><span class="cur">MAD</span><span class="cur">MKD</span><span class="cur">MVR</span><span class="cur">MXN</span><span class="cur">MYR</span><span class="cur">NOK</span><span class="cur">NZD</span><span class="cur">PAB</span><span class="cur">PEN</span><span class="cur">PHP</span><span class="cur">PLN</span><span class="cur">PYG</span><span class="cur">RON</span><span class="cur">RSD</span><span class="cur">SEK</span><span class="cur">SGD</span><span class="cur">THB</span><span class="cur">TRY</span><span class="cur">TZS</span><span class="cur hl">USD</span><span class="cur">UYU</span><span class="cur">VND</span><span class="cur">ZAR</span>
+      </div>
+    </section>
+
+    <hr class="sec-divider">
+
+    <!-- ============ 7. ERROR HANDLING ============ -->
+    <section id="error-handling">
+      <h2 class="sec"><span class="num">07</span> Error Handling</h2>
+
+      <h3 class="sub" id="status-codes">HTTP Status Codes</h3>
+      <div class="table-wrap">
+        <table class="fence-table">
+          <thead><tr><th>Code</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><span class="httpcode s2">200</span></td><td><span class="desc">Success (synchronous operations).</span></td></tr>
+            <tr><td><span class="httpcode s2">201</span></td><td><span class="desc">Resource created successfully.</span></td></tr>
+            <tr><td><span class="httpcode s2">202</span></td><td><span class="desc">Accepted — async processing started.</span></td></tr>
+            <tr><td><span class="httpcode s4">400</span></td><td><span class="desc">Bad request — validation error in request body.</span></td></tr>
+            <tr><td><span class="httpcode s4">401</span></td><td><span class="desc">Unauthorized — invalid or expired token.</span></td></tr>
+            <tr><td><span class="httpcode s4">403</span></td><td><span class="desc">Forbidden — you don't have access to this deal/resource.</span></td></tr>
+            <tr><td><span class="httpcode s4">404</span></td><td><span class="desc">Resource not found.</span></td></tr>
+            <tr><td><span class="httpcode s4">422</span></td><td><span class="desc">Unprocessable Entity — validation error (e.g., duplicate <code class="tok">document_external_id</code>, missing file extension).</span></td></tr>
+            <tr><td><span class="httpcode s5">500</span></td><td><span class="desc">Internal server error.</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+
+      <h3 class="sub" id="pagination">Pagination</h3>
+      <p>All list endpoints support pagination:</p>
+      <div class="table-wrap">
+        <table class="fence-table">
+          <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="mono">page</td><td><span class="type-pill">int</span></td><td><span class="mono">1</span></td><td><span class="desc">Page number (1-indexed).</span></td></tr>
+            <tr><td class="mono">size</td><td><span class="type-pill">int</span></td><td><span class="mono">20</span></td><td><span class="desc">Items per page.</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted">Response includes: <code class="tok">total</code>, <code class="tok">page</code>, <code class="tok">size</code>, <code class="tok">pages</code>.</p>
+
+      <h3 class="sub" id="idempotency">Idempotency</h3>
+      <ul class="fence-list">
+        <li><strong>Assets:</strong> <code class="tok">external_id</code> is the idempotency key. Re-declaring an asset with the same <code class="tok">external_id</code> performs an upsert (updates mutable fields, preserves immutable ones).</li>
+        <li><strong>Payment Transactions:</strong> <code class="tok">external_id</code> should be unique per transaction.</li>
+        <li><strong>Documents:</strong> <code class="tok">document_external_id</code> is unique per deal. Re-registering returns <span class="httpcode s4">422</span>; use <a class="inline" href="#upload-status">Section 4.2 Upload Status</a> to retrieve a fresh presigned URL for any pending document.</li>
+      </ul>
+
+      <h3 class="sub" id="polling">Recommended Polling Strategy</h3>
+      <p>For asset declarations and bulk payment batches:</p>
+      <ol class="fence-list">
+        <li>Poll <code class="tok">GET /v2/declarations/{run_id}</code> every 10–30 seconds.</li>
+        <li>Check the <code class="tok">status</code> field.</li>
+        <li>Once <code class="tok">COMPLETED</code> or <code class="tok">FAILED</code>, inspect per-asset results if needed.</li>
+        <li>Typical processing time depends on portfolio size (seconds for small batches, minutes for large portfolios).</li>
+      </ol>
+      <p>For document uploads, poll <code class="tok">GET /v2/{deal_id}/documents</code> (see <a class="inline" href="#upload-status">Section 4.2</a>) every 5–10 seconds until <code class="tok">uploaded_at</code> is populated. Each poll on a pending document returns a fresh presigned URL, so if a PUT fails you can retry immediately with the URL from the next poll.</p>
+    </section>
+
+  </main>
+
+  <!-- ============================ RIGHT RAIL — ENDPOINTS ============================ -->
+  <aside class="toc">
+    <p class="toc-title">Endpoints</p>
+    <a href="#auth-token"><span class="method post" style="font-size:9px;padding:2px 5px;margin-right:7px">POST</span>login/access-token</a>
+    <a href="#step1"><span class="method post" style="font-size:9px;padding:2px 5px;margin-right:7px">POST</span>portfolio_declarations</a>
+    <a href="#step2" class="deep">/{id}/assets</a>
+    <a href="#step3" class="deep">/{id}/declare</a>
+    <a href="#fast-track"><span class="method post" style="font-size:9px;padding:2px 5px;margin-right:7px">POST</span>declarations</a>
+    <a href="#list-runs"><span class="method get" style="font-size:9px;padding:2px 5px;margin-right:7px">GET</span>declarations</a>
+    <a href="#get-run" class="deep">/{run_id}</a>
+    <a href="#list-assets" class="deep">/{run_id}/assets</a>
+    <a href="#get-asset" class="deep">/{run_id}/assets/{id}</a>
+    <a href="#doc-register"><span class="method post" style="font-size:9px;padding:2px 5px;margin-right:7px">POST</span>documents</a>
+    <a href="#upload-status"><span class="method get" style="font-size:9px;padding:2px 5px;margin-right:7px">GET</span>documents</a>
+    <a href="#payments-bulk"><span class="method post" style="font-size:9px;padding:2px 5px;margin-right:7px">POST</span>payments/bulk</a>
+    <div class="toc-foot">
+      <a href="#top"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>Back to top</a>
+    </div>
+  </aside>
+
+  <div class="nav-scrim"></div>
+
+  <!-- ============================ FOOTER ============================ -->
+  <footer class="foot">
+    <img src="assets/lockup-color-on-dark.svg" alt="Fence">
+    <span class="div" style="width:1px;height:24px;background:var(--border-on-dark-2)"></span>
+    <span class="txt">Client Integration Guide · <b>API v2</b><br>A tech-native facility agency for asset-backed finance.</span>
+    <span class="spacer"></span>
+    <span class="copy-mark">© Fence · Confidential — for integration partners</span>
+  </footer>
+
+</div>
+
+<template id="__bundler_thumbnail">
+  <svg viewBox="0 0 100 100" xmlns="http://www.w3.org/2000/svg">
+    <rect width="100" height="100" fill="#F8F0E6"/>
+    <g transform="translate(33 28)">
+      <path fill="#DEB483" d="M0 9.7C0 4.3 4.3 0 9.7 0H25C25 5.4 20.7 9.7 15.4 9.7H0Z"/>
+      <path fill="#DEB483" d="M0 11.7H18.6C18.6 17.1 14.3 21.4 8.9 21.4H0V11.7Z"/>
+      <path fill="#DEB483" d="M0 23.4H12.2C12.2 28.8 7.9 33.1 2.5 33.1H0V23.4Z"/>
+    </g>
+  </svg>
+</template>
+
+<script src="docs.js"></script>
+<script>
+  // Auto-open the print dialog once fonts + syntax highlighting have settled.
+  (function () {
+    function go() { setTimeout(function () { window.print(); }, 500); }
+    if (document.fonts && document.fonts.ready) {
+      document.fonts.ready.then(function () {
+        window.requestAnimationFrame(go);
+      });
+    } else {
+      window.addEventListener('load', go);
+    }
+  })();
+</script>
+</body>
+</html>

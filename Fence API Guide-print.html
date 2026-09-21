@@ -272,8 +272,7 @@ grant_type=client_credentials
   "dry_run": false,
   "assets": [
     {
-      "external_id": "ADV-2026-001234",
-      "contract_external_id": null,
+      "asset_external_id": "ADV-2026-001234",
       "document_external_ids": [],
       "origination_installment_id": "INS-78901",
       "organization_name": "Acme Corp",
@@ -291,6 +290,15 @@ grant_type=client_credentials
   ]
 }</code></pre>
       </div>
+      <div class="code">
+        <div class="code-head"><span class="lang">Response · 202 Accepted</span><button class="copy" data-copy="code" data-label="Copy"></button></div>
+        <pre><code data-lang="json">{
+  "id": "f55928c9-0e3d-4f2b-9a71-6c1d5e8b04af",
+  "status": "queued",
+  "dry_run": false
+}</code></pre>
+      </div>
+      <p class="muted">The <span class="httpcode s2">202 Accepted</span> means the declaration has been queued for asynchronous processing. Use <code class="tok">id</code> as the <code class="tok">run_id</code> in the monitoring endpoints below.</p>
       <div class="callout warn">
         <span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg></span>
         <div class="body"><strong>Batching recommendation.</strong> The declaration queue processes declarations for a given deal sequentially. Each declaration has fixed infrastructure overhead, so sending many single-asset declarations will create significant backlog. Instead, batch assets over a period (e.g., every 15 minutes, hourly, or daily depending on your reporting needs) and send them in a single declaration.</div>
@@ -301,7 +309,7 @@ grant_type=client_credentials
       <h4 class="subsub" id="list-runs">List Declaration Runs for a Deal</h4>
       <div class="endpoint">
         <span class="method get">GET</span>
-        <span class="path"><span class="base env-base">https://dev-api.fence.finance</span>/v2/declarations/?deal_id={deal_id}&page=1&page_size=100</span>
+        <span class="path"><span class="base env-base">https://dev-api.fence.finance</span>/v2/declarations?deal_id={deal_id}&page=1&page_size=100</span>
         <button class="copy light copy-ep" data-copy="endpoint" aria-label="Copy endpoint"></button>
       </div>
       <p><strong>Declaration Run Statuses:</strong></p>
@@ -347,9 +355,10 @@ grant_type=client_credentials
         <table class="fence-table">
           <thead><tr><th>Step Name</th><th>Description</th></tr></thead>
           <tbody>
-            <tr><td class="mono nowrap">ASSET_VERIFICATION</td><td><span class="desc">Validates asset against deal-specific eligibility criteria.</span></td></tr>
-            <tr><td class="mono nowrap">BORROW_BASE_VERIFICATION</td><td><span class="desc">Evaluates asset for borrow base inclusion (if applicable).</span></td></tr>
-            <tr><td class="mono nowrap">ASSET_CREATION</td><td><span class="desc">Creates or updates the asset in Fence. <code class="tok">details.operation</code> is <code class="tok">created</code> or <code class="tok">updated</code>.</span></td></tr>
+            <tr><td class="mono nowrap">validation</td><td><span class="desc">Schema, type and mutability checks. Carries the per-field diffs when a locked field is rejected.</span></td></tr>
+            <tr><td class="mono nowrap">persistence</td><td><span class="desc">Creates or updates the asset in Fence.</span></td></tr>
+            <tr><td class="mono nowrap">intake_derivation</td><td><span class="desc">Derives expected payments and related intake records from the declared asset.</span></td></tr>
+            <tr><td class="mono nowrap">borrow_base</td><td><span class="desc">Evaluates the asset for borrowing base inclusion, where the facility has one.</span></td></tr>
           </tbody>
         </table>
       </div>
@@ -673,7 +682,7 @@ grant_type=client_credentials
         <div class="schema-body">
           <div class="field"><span class="name">deal_id</span><span class="meta"><span class="ftype">UUID</span><span class="fnote">Required</span></span></div>
           <div class="field"><span class="name">dry_run</span><span class="meta"><span class="ftype">boolean</span><span class="fnote">Default: false</span></span></div>
-          <div class="field"><span class="name">assets</span><span class="meta"><span class="ftype">list of objects</span><span class="fnote">Required, min 1 item, max 50,000 per request. Each asset object is <strong>flat</strong> — deal-specific fields are top-level keys, not wrapped in a <code class="tok">properties</code> object. Base fields: <code class="tok">external_id</code> (string, required), <code class="tok">contract_external_id</code> (string | null), <code class="tok">document_external_ids</code> (list of string, defaults to []). Unknown fields are ignored silently, so a misspelled field is dropped rather than rejected.</span></span></div>
+          <div class="field"><span class="name">assets</span><span class="meta"><span class="ftype">list of objects</span><span class="fnote">Required, min 1 item, max 50,000 per request. Each asset object is <strong>flat</strong>: the facility's fields are top-level keys. Base fields: <code class="tok">asset_external_id</code> (string, required, max 100 chars) and <code class="tok">document_external_ids</code> (list of string, optional). Unknown fields are ignored silently, so a misspelled field is dropped rather than rejected. <code class="tok">contract_external_id</code> is facility-dependent: some facilities require it, others set it themselves and ignore what you send. The field dictionary for your facility is agreed during onboarding.</span></span></div>
         </div>
       </div>
 
@@ -747,19 +756,20 @@ grant_type=client_credentials
             <tr><td><span class="httpcode s4">403</span></td><td><span class="desc">Forbidden — you don't have access to this deal/resource.</span></td></tr>
             <tr><td><span class="httpcode s4">404</span></td><td><span class="desc">Resource not found.</span></td></tr>
             <tr><td><span class="httpcode s4">422</span></td><td><span class="desc">Unprocessable Entity — validation error (e.g., duplicate <code class="tok">document_external_id</code>, missing file extension).</span></td></tr>
+            <tr><td><span class="httpcode s4">409</span></td><td><span class="desc">Conflict. Returned when a facility configured for streaming is declared through an endpoint that does not support it; the message names the endpoint to use.</span></td></tr>
             <tr><td><span class="httpcode s5">500</span></td><td><span class="desc">Internal server error.</span></td></tr>
           </tbody>
         </table>
       </div>
 
       <h3 class="sub" id="pagination">Pagination</h3>
-      <p>All list endpoints support pagination:</p>
+      <p>The declaration endpoints in section 3 paginate as follows. Other <code class="tok">/v2</code> list endpoints take <code class="tok">size</code> (default 50) and ignore <code class="tok">page_size</code>, so check the section you are calling.</p>
       <div class="table-wrap">
         <table class="fence-table">
           <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
           <tbody>
             <tr><td class="mono">page</td><td><span class="type-pill">int</span></td><td><span class="mono">1</span></td><td><span class="desc">Page number (1-indexed).</span></td></tr>
-            <tr><td class="mono">page_size</td><td><span class="type-pill">int</span></td><td><span class="mono">100</span></td><td><span class="desc">Items per page. Note the asymmetry: the <strong>request</strong> parameter is <code class="tok">page_size</code>, while the <strong>response</strong> reports it back as <code class="tok">size</code>.</span></td></tr>
+            <tr><td class="mono">page_size</td><td><span class="type-pill">int</span></td><td><span class="mono">100</span></td><td><span class="desc">Items per page, maximum 1000; above that the call returns <span class="httpcode s4">422</span>. Note the asymmetry: the <strong>request</strong> parameter is <code class="tok">page_size</code>, while the <strong>response</strong> reports it back as <code class="tok">size</code>.</span></td></tr>
           </tbody>
         </table>
       </div>

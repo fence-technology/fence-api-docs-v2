@@ -130,12 +130,26 @@
       <a class="nav-link sub" href="#txn-metadata">Metadata by Type</a>
     </nav>
     <nav class="nav-group">
-      <p class="nav-group-title"><span class="n">6</span> Schemas Reference</p>
+      <p class="nav-group-title"><span class="n">6</span> Reading Metrics</p>
+      <a class="nav-link sub" href="#metrics-overview">Overview</a>
+      <a class="nav-link sub" href="#metrics-list">List Metrics</a>
+      <a class="nav-link sub" href="#metrics-latest">Latest Value</a>
+      <a class="nav-link sub" href="#metrics-history">Value History</a>
+      <a class="nav-link sub" href="#metrics-explanation">Explanation</a>
+      <a class="nav-link sub" href="#metrics-value-types">Value Types</a>
+    </nav>
+    <nav class="nav-group">
+      <p class="nav-group-title"><span class="n">7</span> Downloading Reports</p>
+      <a class="nav-link sub" href="#reports-available">Available Reports</a>
+      <a class="nav-link sub" href="#reports-download">Download a Report</a>
+    </nav>
+    <nav class="nav-group">
+      <p class="nav-group-title"><span class="n">8</span> Schemas Reference</p>
       <a class="nav-link sub" href="#schemas">All Schemas</a>
       <a class="nav-link sub" href="#currencies">Supported Currencies</a>
     </nav>
     <nav class="nav-group">
-      <p class="nav-group-title"><span class="n">7</span> Error Handling</p>
+      <p class="nav-group-title"><span class="n">9</span> Error Handling</p>
       <a class="nav-link sub" href="#status-codes">HTTP Status Codes</a>
       <a class="nav-link sub" href="#pagination">Pagination</a>
       <a class="nav-link sub" href="#idempotency">Idempotency</a>
@@ -151,7 +165,7 @@
       <div class="hero-leaf"></div>
       <p class="eyebrow">Fence · Developer Documentation</p>
       <h1>Client Integration Guide</h1>
-      <p class="lede">Integrate with Fence to declare assets, register supporting documents, and report payment transactions. This guide covers authentication, the declaration pipeline, document verification, and error handling for the <strong>v2</strong> API.</p>
+      <p class="lede">Integrate with Fence to declare assets, register supporting documents and report payment transactions, and to read back what Fence holds for your facility: metric values and generated reports. This guide covers authentication, the declaration pipeline, document verification, reading metrics and reports, and error handling for the <strong>v2</strong> API.</p>
       <div class="hero-meta">
         <span class="meta-chip"><span class="k">Audience</span><span class="v">Technical integration teams</span></span>
         <span class="meta-chip"><span class="k">API Version</span><span class="v mono">v2</span></span>
@@ -162,7 +176,7 @@
     <!-- ============ 1. GETTING STARTED ============ -->
     <section id="getting-started">
       <h2 class="sec"><span class="num">01</span> Getting Started</h2>
-      <p class="sec-intro">Fence is a tech-native facility agency for asset-backed finance. The API lets your systems declare portfolio assets, attach verification documents, and record payment transactions against a credit facility in real time.</p>
+      <p class="sec-intro">Fence is a tech-native facility agency for asset-backed finance. The API lets your systems declare portfolio assets, attach verification documents, and record payment transactions against a credit facility in real time. It also lets them read data back out of Fence: the facility’s metrics (see <a class="inline" href="#metrics">Section 6</a>) and its reports (see <a class="inline" href="#reports">Section 7</a>).</p>
 
       <h3 class="sub" id="environments">1.1 Environments</h3>
       <p>Fence provides two environments. All API paths in this guide are relative to the environment base URL.</p>
@@ -671,10 +685,261 @@ grant_type=client_credentials
 
     <hr class="sec-divider">
 
-    <!-- ============ 6. SCHEMAS REFERENCE ============ -->
+    <!-- ============ 6. READING METRICS ============ -->
+    <section id="metrics">
+      <h2 class="sec"><span class="num">06</span> Reading Metrics</h2>
+      <p class="sec-intro">Fence calculates a set of metrics for each facility, for example outstanding principal, borrowing base, concentration limits or covenant tests, and stores every reading with the date it applies to. These are the same figures shown in the Fence dashboard. The endpoints below let your systems read them.</p>
+
+      <h3 class="sub" id="metrics-overview">6.1 Overview</h3>
+      <p>A <strong>metric definition</strong> describes one figure: its name, description and status. A <strong>metric value</strong> is one stored reading of that figure for a given <code class="tok">as_of_date</code>. The usual flow is:</p>
+      <ol class="fence-list">
+        <li>List the metric definitions for your deal and keep the <code class="tok">id</code> of the ones you need.</li>
+        <li>Read the latest value of each, or its history over a date range.</li>
+        <li>Optionally, read the explanation of how a metric is calculated.</li>
+      </ol>
+      <div class="callout note">
+        <span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></span>
+        <div class="body">The metrics endpoints use the <code class="tok">/v3</code> path prefix, not <code class="tok">/v2</code>. Authentication is the same: send the access token from <a class="inline" href="#auth-token">Section 2</a>. They return values Fence has <strong>already stored</strong>. Reading them never triggers a new calculation.</div>
+      </div>
+      <div class="callout tip">
+        <span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V17h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2Z"/></svg></span>
+        <div class="body">These endpoints are not paginated: each returns a plain JSON array. When reading value history, always send a date range (see <a class="inline" href="#metrics-history">6.4</a>) so the response stays small.</div>
+      </div>
+
+      <h3 class="sub" id="metrics-list">6.2 List Metric Definitions</h3>
+      <p>Returns the metric definitions for the deals your credentials can access.</p>
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path"><span class="base env-base">https://dev-api.fence.finance</span>/v3/metrics?deal_id={deal_id}</span>
+        <button class="copy light copy-ep" data-copy="endpoint" aria-label="Copy endpoint"></button>
+      </div>
+      <p><strong>Query Parameters:</strong></p>
+      <div class="table-wrap">
+        <table class="fence-table">
+          <thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="mono nowrap">deal_id</td><td><span class="type-pill">UUID</span></td><td><span class="req no">No</span></td><td><span class="desc">Limit the list to this deal. Repeat the parameter for several deals (<code class="tok">?deal_id=…&amp;deal_id=…</code>). If omitted, metrics for every deal you can access are returned. A <code class="tok">deal_id</code> you cannot access returns <span class="httpcode s4">403</span>.</span></td></tr>
+            <tr><td class="mono nowrap">name</td><td><span class="type-pill">string</span></td><td><span class="req no">No</span></td><td><span class="desc">Limit the list to metrics with this exact name. Can be repeated.</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code">
+        <div class="code-head"><span class="lang">Response</span><span class="resp"><span class="dot"></span>200 OK</span><button class="copy" data-copy="code" data-label="Copy"></button></div>
+        <pre><code data-lang="json">[
+  {
+    "id": "3f2a9c1e-7b4d-4e8a-9f10-2c5d6e7f8a90",
+    "name": "outstanding_principal",
+    "status": "core",
+    "description": "Total outstanding principal of the eligible portfolio.",
+    "calculation_strategy_name": "declarative",
+    "metadata": {},
+    "analytics_visualization_compatible": true
+  }
+]</code></pre>
+      </div>
+      <p><strong>Metric Definition Statuses:</strong></p>
+      <div class="table-wrap">
+        <table class="fence-table">
+          <thead><tr><th>Status</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><span class="sbadge ok"><span class="dot"></span>core</span></td><td><span class="desc">Calculated on Fence’s regular schedule. Use these for reporting and integrations.</span></td></tr>
+            <tr><td><span class="sbadge info"><span class="dot"></span>on-demand</span></td><td><span class="desc">Calculated only when requested, so readings can be less frequent.</span></td></tr>
+            <tr><td><span class="sbadge info"><span class="dot"></span>long_running_service</span></td><td><span class="desc">Calculated by a separate, longer-running process.</span></td></tr>
+            <tr><td><span class="sbadge neutral"><span class="dot"></span>draft</span></td><td><span class="desc">Being set up and not ready yet. Do not rely on its values.</span></td></tr>
+            <tr><td><span class="sbadge warn"><span class="dot"></span>deprecated</span></td><td><span class="desc">No longer calculated. Past readings are kept, but no new ones will be added.</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted">The list includes metrics in every status. Filter on <code class="tok">status</code> on your side. In most cases you want <code class="tok">core</code>.</p>
+
+      <h3 class="sub" id="metrics-latest">6.3 Get the Latest Value</h3>
+      <p>Returns the most recent stored reading of one metric.</p>
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path"><span class="base env-base">https://dev-api.fence.finance</span>/v3/metrics/{metric_definition_id}/values/latest</span>
+        <button class="copy light copy-ep" data-copy="endpoint" aria-label="Copy endpoint"></button>
+      </div>
+      <div class="code">
+        <div class="code-head"><span class="lang">Response</span><span class="resp"><span class="dot"></span>200 OK</span><button class="copy" data-copy="code" data-label="Copy"></button></div>
+        <pre><code data-lang="json">{
+  "id": "9b8c7d6e-5f4a-4b3c-8d2e-1f0a9b8c7d6e",
+  "name": "outstanding_principal",
+  "metric_definition_id": "3f2a9c1e-7b4d-4e8a-9f10-2c5d6e7f8a90",
+  "deal_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+  "value": { "value": 1250000000, "decimals": 2, "currency": "USD" },
+  "as_of_date": "2026-10-15T00:00:00Z",
+  "value_type": "amount",
+  "metadata": null
+}</code></pre>
+      </div>
+      <p class="muted">In this example the amount is <code class="tok">1250000000 / 10^2</code> = 12,500,000.00 USD. See <a class="inline" href="#metrics-value-types">6.6 Value Types</a>. Returns <span class="httpcode s4">404</span> if the metric has no stored value yet, or if the metric does not exist or belongs to a deal you cannot access.</p>
+
+      <h3 class="sub" id="metrics-history">6.4 List Value History</h3>
+      <p>Returns the stored readings of one metric, filtered by date.</p>
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path"><span class="base env-base">https://dev-api.fence.finance</span>/v3/metrics/{metric_definition_id}/values?as_of_date_gte=2026-09-01T00:00:00Z&as_of_date_lte=2026-09-30T23:59:59Z</span>
+        <button class="copy light copy-ep" data-copy="endpoint" aria-label="Copy endpoint"></button>
+      </div>
+      <p><strong>Query Parameters</strong> (all optional, ISO 8601 date-time):</p>
+      <div class="table-wrap">
+        <table class="fence-table">
+          <thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="mono nowrap">as_of_date_gte</td><td><span class="type-pill">datetime</span></td><td><span class="req no">No</span></td><td><span class="desc">Readings whose <code class="tok">as_of_date</code> is on or after this moment.</span></td></tr>
+            <tr><td class="mono nowrap">as_of_date_lte</td><td><span class="type-pill">datetime</span></td><td><span class="req no">No</span></td><td><span class="desc">Readings whose <code class="tok">as_of_date</code> is on or before this moment.</span></td></tr>
+            <tr><td class="mono nowrap">created_at_gte</td><td><span class="type-pill">datetime</span></td><td><span class="req no">No</span></td><td><span class="desc">Readings that Fence stored on or after this moment. Use it to fetch only what is new since your last sync.</span></td></tr>
+            <tr><td class="mono nowrap">created_at_lte</td><td><span class="type-pill">datetime</span></td><td><span class="req no">No</span></td><td><span class="desc">Readings that Fence stored on or before this moment.</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The response is an array of the same objects as in <a class="inline" href="#metrics-latest">6.3</a>. Without any filter it returns the metric’s full history.</p>
+      <div class="callout note">
+        <span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></span>
+        <div class="body"><code class="tok">as_of_date</code> is the date the figure describes. <code class="tok">created_at</code> is when Fence stored it. Fence can store a corrected reading for a past date, so to stay in sync, poll with <code class="tok">created_at_gte</code> set to the time of your previous poll.</div>
+      </div>
+      <p class="muted">You can also fetch a single reading by its id: <code class="tok">GET /v3/metrics/{metric_definition_id}/values/{metric_value_id}</code>.</p>
+
+      <h3 class="sub" id="metrics-explanation">6.5 Get a Metric Explanation</h3>
+      <p>Returns how a metric is calculated: where its data comes from, the formula, and the meaning of each term.</p>
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path"><span class="base env-base">https://dev-api.fence.finance</span>/v3/metrics/{metric_definition_id}/explanation</span>
+        <button class="copy light copy-ep" data-copy="endpoint" aria-label="Copy endpoint"></button>
+      </div>
+      <div class="code">
+        <div class="code-head"><span class="lang">Response</span><span class="resp"><span class="dot"></span>200 OK</span><button class="copy" data-copy="code" data-label="Copy"></button></div>
+        <pre><code data-lang="json">{
+  "metric_definition_id": "3f2a9c1e-7b4d-4e8a-9f10-2c5d6e7f8a90",
+  "description": "Total outstanding principal of the eligible portfolio.",
+  "data_source": "Declared assets",
+  "formula_latex": "\\sum_{i} P_i",
+  "sub_formula_latex": null,
+  "terms": [
+    {
+      "key": "P_i",
+      "label": "Outstanding principal",
+      "description": "Outstanding principal of eligible asset i.",
+      "metric_definition_id": null
+    }
+  ],
+  "steps": [
+    "Select the eligible assets.",
+    "Add up their outstanding principal."
+  ]
+}</code></pre>
+      </div>
+      <p class="muted">Formulas are written in LaTeX. When a term is itself another metric, its <code class="tok">metric_definition_id</code> is set so you can follow it. Not every metric has an explanation yet. Those return <span class="httpcode s2">200</span> with a <code class="tok">null</code> body.</p>
+
+      <h3 class="sub" id="metrics-value-types">6.6 Value Types</h3>
+      <p>The shape of <code class="tok">value</code> depends on <code class="tok">value_type</code>. Compare <code class="tok">value_type</code> without regard to case: a few older readings store it with a capital letter (for example <code class="tok">"Amount"</code>).</p>
+      <div class="table-wrap">
+        <table class="fence-table">
+          <thead><tr><th>value_type</th><th>Shape of value</th></tr></thead>
+          <tbody>
+            <tr><td class="mono nowrap">amount</td><td><span class="desc">Object <code class="tok">{"value": int, "decimals": int, "currency": string}</code>. The amount is <code class="tok">value / 10^decimals</code>. Integers avoid rounding errors.</span></td></tr>
+            <tr><td class="mono nowrap">number</td><td><span class="desc">A number, for example a count of assets.</span></td></tr>
+            <tr><td class="mono nowrap">percentage</td><td><span class="desc">A number. Check the metric’s description for whether it is a ratio (0.05) or a percentage (5).</span></td></tr>
+            <tr><td class="mono nowrap">boolean</td><td><span class="desc"><code class="tok">true</code> or <code class="tok">false</code>, for example whether a covenant test passes.</span></td></tr>
+            <tr><td class="mono nowrap">datetime</td><td><span class="desc">An ISO 8601 date-time string.</span></td></tr>
+            <tr><td class="mono nowrap">*_per_entity</td><td><span class="desc"><code class="tok">amount_per_entity</code>, <code class="tok">number_per_entity</code>, <code class="tok">percentage_per_entity</code>, <code class="tok">datetime_per_entity</code>: an object whose keys are entities (for example a country, an originator or a tranche) and whose values have the shape of the base type above.</span></td></tr>
+            <tr><td class="mono nowrap">time_series</td><td><span class="desc">A series of dated points. The exact shape depends on the metric and is agreed during onboarding.</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted"><code class="tok">value</code> can be <code class="tok">null</code> when the metric ran but had nothing to measure on that date, for example when no assets were in scope.</p>
+    </section>
+
+    <hr class="sec-divider">
+
+    <!-- ============ 7. DOWNLOADING REPORTS ============ -->
+    <section id="reports">
+      <h2 class="sec"><span class="num">07</span> Downloading Reports</h2>
+      <p class="sec-intro">Fence generates reports for each facility, for example borrowing base certificates, portfolio tapes or covenant reports. Which reports exist depends on the facility and is agreed during onboarding. Downloading one takes two calls: list the reports available for your deal, then request a download link for the one you want.</p>
+
+      <h3 class="sub" id="reports-available">7.1 List Available Reports</h3>
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path"><span class="base env-base">https://dev-api.fence.finance</span>/v2/{deal_id}/reports/available</span>
+        <button class="copy light copy-ep" data-copy="endpoint" aria-label="Copy endpoint"></button>
+      </div>
+      <div class="code">
+        <div class="code-head"><span class="lang">Response</span><span class="resp"><span class="dot"></span>200 OK</span><button class="copy" data-copy="code" data-label="Copy"></button></div>
+        <pre><code data-lang="json">[
+  {
+    "report_name": "borrowing_base_certificate",
+    "report_description": "Borrowing base certificate as of a given date.",
+    "report_type": "excel",
+    "report_params": [
+      {
+        "name": "as_of_date",
+        "description": "Date the report is calculated for.",
+        "input_type": "date",
+        "options": null
+      }
+    ]
+  }
+]</code></pre>
+      </div>
+      <p>Each report lists the parameters it accepts in <code class="tok">report_params</code>. <code class="tok">input_type</code> is one of <code class="tok">text</code>, <code class="tok">date</code>, <code class="tok">number</code> or <code class="tok">boolean</code>. When <code class="tok">options</code> is set, the value must be one of those options. <code class="tok">report_type</code> is the file format: <code class="tok">pdf</code>, <code class="tok">excel</code> (.xlsx), <code class="tok">csv</code> or <code class="tok">txt</code>.</p>
+      <p class="muted">The response also carries fields Fence uses for its own scheduled uploads, such as <code class="tok">auto_upload</code> and <code class="tok">document_category</code>. You can ignore them.</p>
+
+      <h3 class="sub" id="reports-download">7.2 Download a Report</h3>
+      <p>Generates the report and returns a temporary link to the file.</p>
+      <div class="endpoint">
+        <span class="method post">POST</span>
+        <span class="path"><span class="base env-base">https://dev-api.fence.finance</span>/v2/{deal_id}/reports/download</span>
+        <button class="copy light copy-ep" data-copy="endpoint" aria-label="Copy endpoint"></button>
+      </div>
+      <div class="code">
+        <div class="code-head"><span class="lang">Request Body</span><button class="copy" data-copy="code" data-label="Copy"></button></div>
+        <pre><code data-lang="json">{
+  "report_name": "borrowing_base_certificate",
+  "params": [
+    { "name": "as_of_date", "value": "2026-09-30" }
+  ]
+}</code></pre>
+      </div>
+      <div class="table-wrap">
+        <table class="fence-table">
+          <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="mono nowrap">report_name</td><td><span class="type-pill">string</span></td><td><span class="req yes">Yes</span></td><td><span class="desc">A <code class="tok">report_name</code> from <a class="inline" href="#reports-available">7.1</a>.</span></td></tr>
+            <tr><td class="mono nowrap">params</td><td><span class="type-pill">list of objects</span></td><td><span class="req no">No</span></td><td><span class="desc">One <code class="tok">{"name", "value"}</code> pair per parameter. <code class="tok">value</code> is always a <strong>string</strong>, whatever the <code class="tok">input_type</code>: send dates as <code class="tok">"YYYY-MM-DD"</code>, numbers as <code class="tok">"100"</code> and booleans as <code class="tok">"true"</code> or <code class="tok">"false"</code>.</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <div class="code">
+        <div class="code-head"><span class="lang">Response</span><span class="resp"><span class="dot"></span>200 OK</span><button class="copy" data-copy="code" data-label="Copy"></button></div>
+        <pre><code data-lang="json">{
+  "url": "https://s3.amazonaws.com/...",
+  "expiration": 3600
+}</code></pre>
+      </div>
+      <p>Send a GET request to <code class="tok">url</code> to download the file. The link is valid for <code class="tok">expiration</code> seconds (one hour). After that, call this endpoint again for a new link.</p>
+      <div class="callout warn">
+        <span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M12 9v4M12 17h.01M10.3 3.9 1.8 18a2 2 0 0 0 1.7 3h17a2 2 0 0 0 1.7-3L13.7 3.9a2 2 0 0 0-3.4 0Z"/></svg></span>
+        <div class="body">Fence generates the report while the request is open, so large reports can take a while to respond. Set a generous client timeout and do not retry in a tight loop.</div>
+      </div>
+      <p><strong>Errors:</strong></p>
+      <div class="table-wrap">
+        <table class="fence-table">
+          <thead><tr><th>Code</th><th>Meaning</th></tr></thead>
+          <tbody>
+            <tr><td><span class="httpcode s4">400</span></td><td><span class="desc">A parameter is missing or has an invalid value. The message says which.</span></td></tr>
+            <tr><td><span class="httpcode s4">403</span></td><td><span class="desc">You cannot access this deal, or this report is not available to your account.</span></td></tr>
+            <tr><td><span class="httpcode s4">404</span></td><td><span class="desc">No report with this <code class="tok">report_name</code> exists for this deal.</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+    </section>
+
+    <hr class="sec-divider">
+
+    <!-- ============ 8. SCHEMAS REFERENCE ============ -->
     <section id="schemas-reference">
-      <h2 class="sec"><span class="num">06</span> Schemas Reference</h2>
-      <p class="sec-intro" id="schemas">Canonical request and response shapes for the declaration endpoints.</p>
+      <h2 class="sec"><span class="num">08</span> Schemas Reference</h2>
+      <p class="sec-intro" id="schemas">Canonical request and response shapes for the declaration, metrics and reports endpoints.</p>
 
       <h4 class="subsub">Asset Declaration — Request</h4>
       <div class="schema">
@@ -730,6 +995,78 @@ grant_type=client_credentials
         </div>
       </div>
 
+      <h4 class="subsub">Metric Definition Response</h4>
+      <div class="schema">
+        <div class="schema-head"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>MetricDefinitionApiResponse</div>
+        <div class="schema-body">
+          <div class="field"><span class="name">id</span><span class="meta"><span class="ftype">UUID</span></span></div>
+          <div class="field"><span class="name">name</span><span class="meta"><span class="ftype">string</span></span></div>
+          <div class="field"><span class="name">status</span><span class="meta"><span class="ftype">"core" | "on-demand" | "long_running_service" | "draft" | "deprecated"</span></span></div>
+          <div class="field"><span class="name">description</span><span class="meta"><span class="ftype">string | null</span></span></div>
+          <div class="field"><span class="name">calculation_strategy_name</span><span class="meta"><span class="ftype">string | null</span></span></div>
+          <div class="field"><span class="name">metadata</span><span class="meta"><span class="ftype">object | null</span></span></div>
+          <div class="field"><span class="name">analytics_visualization_compatible</span><span class="meta"><span class="ftype">boolean</span></span></div>
+        </div>
+      </div>
+
+      <h4 class="subsub">Metric Value Response</h4>
+      <div class="schema">
+        <div class="schema-head"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>MetricValueApiResponse</div>
+        <div class="schema-body">
+          <div class="field"><span class="name">id</span><span class="meta"><span class="ftype">UUID</span></span></div>
+          <div class="field"><span class="name">name</span><span class="meta"><span class="ftype">string</span><span class="fnote">Name of the metric definition.</span></span></div>
+          <div class="field"><span class="name">metric_definition_id</span><span class="meta"><span class="ftype">UUID</span></span></div>
+          <div class="field"><span class="name">deal_id</span><span class="meta"><span class="ftype">UUID</span></span></div>
+          <div class="field"><span class="name">value</span><span class="meta"><span class="ftype">any | null</span><span class="fnote">Shape depends on <code class="tok">value_type</code>. See <a class="inline" href="#metrics-value-types">6.6</a>.</span></span></div>
+          <div class="field"><span class="name">as_of_date</span><span class="meta"><span class="ftype">datetime | null</span></span></div>
+          <div class="field"><span class="name">value_type</span><span class="meta"><span class="ftype">string | null</span></span></div>
+          <div class="field"><span class="name">metadata</span><span class="meta"><span class="ftype">object | null</span></span></div>
+        </div>
+      </div>
+
+      <h4 class="subsub">Metric Explanation Response</h4>
+      <div class="schema">
+        <div class="schema-head"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>MetricExplanationApiResponse</div>
+        <div class="schema-body">
+          <div class="field"><span class="name">metric_definition_id</span><span class="meta"><span class="ftype">UUID</span></span></div>
+          <div class="field"><span class="name">description</span><span class="meta"><span class="ftype">string</span></span></div>
+          <div class="field"><span class="name">data_source</span><span class="meta"><span class="ftype">string</span></span></div>
+          <div class="field"><span class="name">formula_latex</span><span class="meta"><span class="ftype">string</span></span></div>
+          <div class="field"><span class="name">sub_formula_latex</span><span class="meta"><span class="ftype">string | null</span></span></div>
+          <div class="field"><span class="name">terms</span><span class="meta"><span class="ftype">list of objects</span><span class="fnote">Each term: <code class="tok">key</code>, <code class="tok">label</code>, <code class="tok">description</code> (strings), <code class="tok">metric_definition_id</code> (UUID | null).</span></span></div>
+          <div class="field"><span class="name">steps</span><span class="meta"><span class="ftype">list of string</span></span></div>
+        </div>
+      </div>
+
+      <h4 class="subsub">Available Report</h4>
+      <div class="schema">
+        <div class="schema-head"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>ReportSchema</div>
+        <div class="schema-body">
+          <div class="field"><span class="name">report_name</span><span class="meta"><span class="ftype">string</span></span></div>
+          <div class="field"><span class="name">report_description</span><span class="meta"><span class="ftype">string</span></span></div>
+          <div class="field"><span class="name">report_type</span><span class="meta"><span class="ftype">"pdf" | "excel" | "csv" | "txt"</span></span></div>
+          <div class="field"><span class="name">report_params</span><span class="meta"><span class="ftype">list of objects | null</span><span class="fnote">Each parameter: <code class="tok">name</code>, <code class="tok">description</code> (strings), <code class="tok">input_type</code> ("text" | "date" | "number" | "boolean"), <code class="tok">options</code> (list of string | null).</span></span></div>
+        </div>
+      </div>
+
+      <h4 class="subsub">Report Download — Request</h4>
+      <div class="schema">
+        <div class="schema-head"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>ReportDownloadBodySchema</div>
+        <div class="schema-body">
+          <div class="field"><span class="name">report_name</span><span class="meta"><span class="ftype">string</span><span class="fnote">Required</span></span></div>
+          <div class="field"><span class="name">params</span><span class="meta"><span class="ftype">list of objects | null</span><span class="fnote">Each: <code class="tok">name</code> (string), <code class="tok">value</code> (string).</span></span></div>
+        </div>
+      </div>
+
+      <h4 class="subsub">Report Download — Response</h4>
+      <div class="schema">
+        <div class="schema-head"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>DocumentResponse</div>
+        <div class="schema-body">
+          <div class="field"><span class="name">url</span><span class="meta"><span class="ftype">string</span><span class="fnote">Temporary download link.</span></span></div>
+          <div class="field"><span class="name">expiration</span><span class="meta"><span class="ftype">integer</span><span class="fnote">Seconds the link stays valid (3600).</span></span></div>
+        </div>
+      </div>
+
       <h4 class="subsub" id="currencies">Supported Currencies</h4>
       <p class="muted">54 ISO currency codes are accepted in the <code class="tok">currency</code> field.</p>
       <div class="cur-grid">
@@ -739,9 +1076,9 @@ grant_type=client_credentials
 
     <hr class="sec-divider">
 
-    <!-- ============ 7. ERROR HANDLING ============ -->
+    <!-- ============ 9. ERROR HANDLING ============ -->
     <section id="error-handling">
-      <h2 class="sec"><span class="num">07</span> Error Handling</h2>
+      <h2 class="sec"><span class="num">09</span> Error Handling</h2>
 
       <h3 class="sub" id="status-codes">HTTP Status Codes</h3>
       <div class="table-wrap">
@@ -763,7 +1100,7 @@ grant_type=client_credentials
       </div>
 
       <h3 class="sub" id="pagination">Pagination</h3>
-      <p>The declaration endpoints in section 3 paginate as follows. Other <code class="tok">/v2</code> list endpoints take <code class="tok">size</code> (default 50) and ignore <code class="tok">page_size</code>, so check the section you are calling.</p>
+      <p>The declaration endpoints in section 3 paginate as follows. Other <code class="tok">/v2</code> list endpoints take <code class="tok">size</code> (default 50) and ignore <code class="tok">page_size</code>, so check the section you are calling. The metrics and reports endpoints in sections 6 and 7 are not paginated: they return a plain array.</p>
       <div class="table-wrap">
         <table class="fence-table">
           <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
@@ -807,6 +1144,12 @@ grant_type=client_credentials
     <a href="#doc-register"><span class="method post" style="font-size:9px;padding:2px 5px;margin-right:7px">POST</span>documents</a>
     <a href="#upload-status"><span class="method get" style="font-size:9px;padding:2px 5px;margin-right:7px">GET</span>documents</a>
     <a href="#payments-bulk"><span class="method post" style="font-size:9px;padding:2px 5px;margin-right:7px">POST</span>payments/bulk</a>
+    <a href="#metrics-list"><span class="method get" style="font-size:9px;padding:2px 5px;margin-right:7px">GET</span>v3/metrics</a>
+    <a href="#metrics-latest" class="deep">/{id}/values/latest</a>
+    <a href="#metrics-history" class="deep">/{id}/values</a>
+    <a href="#metrics-explanation" class="deep">/{id}/explanation</a>
+    <a href="#reports-available"><span class="method get" style="font-size:9px;padding:2px 5px;margin-right:7px">GET</span>reports/available</a>
+    <a href="#reports-download"><span class="method post" style="font-size:9px;padding:2px 5px;margin-right:7px">POST</span>reports/download</a>
     <div class="toc-foot">
       <a href="#top"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="m18 15-6-6-6 6"/></svg>Back to top</a>
     </div>
@@ -820,7 +1163,7 @@ grant_type=client_credentials
     <span class="div" style="width:1px;height:24px;background:var(--border-on-dark-2)"></span>
     <span class="txt">Client Integration Guide · <b>API v2</b><br>A tech-native facility agency for asset-backed finance.</span>
     <span class="spacer"></span>
-    <span class="copy-mark">© Fence · Confidential — for integration partners · Last updated 21 September 2026</span>
+    <span class="copy-mark">© Fence · Confidential — for integration partners · Last updated 16 October 2026</span>
   </footer>
 
 </div>

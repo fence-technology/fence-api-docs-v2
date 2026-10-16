@@ -70,11 +70,9 @@
       <a class="nav-link sub" href="#txn-metadata">Metadata by Type</a>
     </nav>
     <nav class="nav-group">
-      <p class="nav-group-title"><span class="n">6</span> Reading Assets &amp; Contracts</p>
+      <p class="nav-group-title"><span class="n">6</span> Reading Assets</p>
       <a class="nav-link sub" href="#assets-list">List Assets</a>
       <a class="nav-link sub" href="#assets-get">Get an Asset</a>
-      <a class="nav-link sub" href="#contracts-list">List Contracts</a>
-      <a class="nav-link sub" href="#contracts-get">Get a Contract</a>
     </nav>
     <nav class="nav-group">
       <p class="nav-group-title"><span class="n">7</span> Reading Metrics</p>
@@ -112,7 +110,7 @@
       <div class="hero-leaf"></div>
       <p class="eyebrow">Fence · Developer Documentation</p>
       <h1>Client Integration Guide</h1>
-      <p class="lede">Integrate with Fence to declare assets, register supporting documents and report payment transactions, and to read back what Fence holds for your facility: assets, contracts, metric values and generated reports. This guide covers authentication, the declaration pipeline, document verification, reading data back, and error handling for the <strong>v2</strong> API.</p>
+      <p class="lede">Integrate with Fence to declare assets, register supporting documents and report payment transactions, and to read back what Fence holds for your facility: assets, metric values and generated reports. This guide covers authentication, the declaration pipeline, document verification, reading data back, and error handling for the <strong>v2</strong> API.</p>
       <div class="hero-meta">
         <span class="meta-chip"><span class="k">Audience</span><span class="v">Technical integration teams</span></span>
         <span class="meta-chip"><span class="k">API Version</span><span class="v mono">v2</span></span>
@@ -123,7 +121,7 @@
     <!-- ============ 1. GETTING STARTED ============ -->
     <section id="getting-started">
       <h2 class="sec"><span class="num">01</span> Getting Started</h2>
-      <p class="sec-intro">Fence is a tech-native facility agency for asset-backed finance. The API lets your systems declare portfolio assets, attach verification documents, and record payment transactions against a credit facility in real time. It also lets them read data back out of Fence: the assets and contracts Fence holds (see <a class="inline" href="#read-back">Section 6</a>), the facility’s metrics (see <a class="inline" href="#metrics">Section 7</a>) and its reports (see <a class="inline" href="#reports">Section 8</a>).</p>
+      <p class="sec-intro">Fence is a tech-native facility agency for asset-backed finance. The API lets your systems declare portfolio assets, attach verification documents, and record payment transactions against a credit facility in real time. It also lets them read data back out of Fence: the assets Fence holds (see <a class="inline" href="#read-back">Section 6</a>), the facility’s metrics (see <a class="inline" href="#metrics">Section 7</a>) and its reports (see <a class="inline" href="#reports">Section 8</a>).</p>
 
       <h3 class="sub" id="environments">1.1 Environments</h3>
       <p>Fence provides two environments. All API paths in this guide are relative to the environment base URL.</p>
@@ -632,10 +630,10 @@ grant_type=client_credentials
 
     <hr class="sec-divider">
 
-    <!-- ============ 6. READING ASSETS & CONTRACTS ============ -->
+    <!-- ============ 6. READING ASSETS ============ -->
     <section id="read-back">
-      <h2 class="sec"><span class="num">06</span> Reading Assets &amp; Contracts</h2>
-      <p class="sec-intro">Read back the assets and contracts Fence holds for your facility, using your own identifiers: the <code class="tok">asset_external_id</code> and <code class="tok">contract_external_id</code> you sent when declaring. Use these endpoints to check that Fence’s view of your book matches yours.</p>
+      <h2 class="sec"><span class="num">06</span> Reading Assets</h2>
+      <p class="sec-intro">Read back the assets Fence holds for your facility, using your own identifier: the <code class="tok">asset_external_id</code> you sent when declaring. Use these endpoints to check that Fence’s view of your book matches yours.</p>
       <div class="callout note">
         <span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></span>
         <div class="body">Each record is <strong>flat</strong>, like the declaration request: Fence’s own fields (such as <code class="tok">id</code> and <code class="tok">created_at</code>) sit next to your facility’s fields as top-level keys. Which facility fields appear follows the field dictionary agreed during onboarding.</div>
@@ -695,45 +693,6 @@ grant_type=client_credentials
         <button class="copy light copy-ep" data-copy="endpoint" aria-label="Copy endpoint"></button>
       </div>
       <p>Returns one asset, with the same fields as an item of the list above. Returns <span class="httpcode s4">404</span> if no asset with this <code class="tok">asset_external_id</code> exists for the deal.</p>
-
-      <h3 class="sub" id="contracts-list">6.3 List Contracts</h3>
-      <div class="endpoint">
-        <span class="method get">GET</span>
-        <span class="path"><span class="base env-base">https://dev-api.fence.finance</span>/v2/{deal_id}/contracts?page=1&size=50</span>
-        <button class="copy light copy-ep" data-copy="endpoint" aria-label="Copy endpoint"></button>
-      </div>
-      <p><strong>Query Parameters:</strong></p>
-      <div class="table-wrap">
-        <table class="fence-table">
-          <thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
-          <tbody>
-            <tr><td class="mono nowrap">external_id</td><td><span class="type-pill">string</span></td><td><span class="req no">No</span></td><td><span class="desc">Only the contract with this <code class="tok">contract_external_id</code>.</span></td></tr>
-            <tr><td class="mono nowrap">is_eligible</td><td><span class="type-pill">bool</span></td><td><span class="req no">No</span></td><td><span class="desc">Only eligible (<code class="tok">true</code>) or only ineligible (<code class="tok">false</code>) contracts.</span></td></tr>
-            <tr><td class="mono nowrap">page</td><td><span class="type-pill">int</span></td><td><span class="req no">No</span></td><td><span class="desc">Page number, starting at 1. Default 1.</span></td></tr>
-            <tr><td class="mono nowrap">size</td><td><span class="type-pill">int</span></td><td><span class="req no">No</span></td><td><span class="desc">Items per page. Default 50.</span></td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p>The response uses the same <code class="tok">items</code> / <code class="tok">total</code> / <code class="tok">page</code> / <code class="tok">size</code> / <code class="tok">pages</code> envelope as the asset list. Each item looks like this:</p>
-      <div class="code">
-        <div class="code-head"><span class="lang">Contract</span><button class="copy" data-copy="code" data-label="Copy"></button></div>
-        <pre><code data-lang="json">{
-  "id": "0e1f2a3b-4c5d-4e6f-8a7b-9c0d1e2f3a4b",
-  "created_at": "2026-04-01T09:12:40Z",
-  "external_id": "CTR-2026-000567",
-  "is_eligible": true,
-  "organization_name": "Acme Corp"
-}</code></pre>
-      </div>
-      <p class="muted">In a contract record, your identifier is returned as <code class="tok">external_id</code>. <code class="tok">is_eligible</code> says whether the contract currently meets the facility’s eligibility criteria.</p>
-
-      <h3 class="sub" id="contracts-get">6.4 Get a Contract</h3>
-      <div class="endpoint">
-        <span class="method get">GET</span>
-        <span class="path"><span class="base env-base">https://dev-api.fence.finance</span>/v2/{deal_id}/contracts/{contract_external_id}</span>
-        <button class="copy light copy-ep" data-copy="endpoint" aria-label="Copy endpoint"></button>
-      </div>
-      <p>Returns one contract, with the same fields as an item of the list above. Returns <span class="httpcode s4">404</span> if no contract with this <code class="tok">contract_external_id</code> exists for the deal.</p>
     </section>
 
     <hr class="sec-divider">
@@ -1044,18 +1003,6 @@ grant_type=client_credentials
         </div>
       </div>
 
-      <h4 class="subsub">Contract (read)</h4>
-      <div class="schema">
-        <div class="schema-head"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>Contract</div>
-        <div class="schema-body">
-          <div class="field"><span class="name">id</span><span class="meta"><span class="ftype">UUID</span><span class="fnote">Fence’s id for the contract.</span></span></div>
-          <div class="field"><span class="name">created_at</span><span class="meta"><span class="ftype">datetime</span></span></div>
-          <div class="field"><span class="name">external_id</span><span class="meta"><span class="ftype">string</span><span class="fnote">Your <code class="tok">contract_external_id</code>.</span></span></div>
-          <div class="field"><span class="name">is_eligible</span><span class="meta"><span class="ftype">boolean</span></span></div>
-          <div class="field"><span class="name">…</span><span class="meta"><span class="ftype">facility fields</span><span class="fnote">Your facility’s fields as top-level keys, following the field dictionary agreed during onboarding.</span></span></div>
-        </div>
-      </div>
-
       <h4 class="subsub">Paginated List</h4>
       <div class="schema">
         <div class="schema-head"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>Page</div>
@@ -1171,7 +1118,7 @@ grant_type=client_credentials
       </div>
 
       <h3 class="sub" id="pagination">Pagination</h3>
-      <p>The declaration endpoints in section 3 paginate as follows. The asset and contract lists in section 6 take <code class="tok">size</code> (default 50) instead and ignore <code class="tok">page_size</code>. The metrics and reports endpoints in sections 7 and 8 are not paginated: they return a plain array.</p>
+      <p>The declaration endpoints in section 3 paginate as follows. The asset list in section 6 takes <code class="tok">size</code> (default 50) instead and ignore <code class="tok">page_size</code>. The metrics and reports endpoints in sections 7 and 8 are not paginated: they return a plain array.</p>
       <div class="table-wrap">
         <table class="fence-table">
           <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
@@ -1217,8 +1164,6 @@ grant_type=client_credentials
     <a href="#payments-bulk"><span class="method post" style="font-size:9px;padding:2px 5px;margin-right:7px">POST</span>payments/bulk</a>
     <a href="#assets-list"><span class="method get" style="font-size:9px;padding:2px 5px;margin-right:7px">GET</span>assets</a>
     <a href="#assets-get" class="deep">/{asset_external_id}</a>
-    <a href="#contracts-list"><span class="method get" style="font-size:9px;padding:2px 5px;margin-right:7px">GET</span>contracts</a>
-    <a href="#contracts-get" class="deep">/{contract_external_id}</a>
     <a href="#metrics-list"><span class="method get" style="font-size:9px;padding:2px 5px;margin-right:7px">GET</span>v3/metrics</a>
     <a href="#metrics-latest" class="deep">/{id}/values/latest</a>
     <a href="#metrics-history" class="deep">/{id}/values</a>

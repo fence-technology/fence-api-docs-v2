@@ -731,26 +731,11 @@ grant_type=client_credentials
     "name": "outstanding_principal",
     "status": "core",
     "description": "Total outstanding principal of the eligible portfolio.",
-    "calculation_strategy_name": "declarative",
-    "metadata": {},
-    "analytics_visualization_compatible": true
+    "metadata": {}
   }
 ]</code></pre>
       </div>
-      <p><strong>Metric Definition Statuses:</strong></p>
-      <div class="table-wrap">
-        <table class="fence-table">
-          <thead><tr><th>Status</th><th>Meaning</th></tr></thead>
-          <tbody>
-            <tr><td><span class="sbadge ok"><span class="dot"></span>core</span></td><td><span class="desc">Calculated on Fence’s regular schedule. Use these for reporting and integrations.</span></td></tr>
-            <tr><td><span class="sbadge info"><span class="dot"></span>on-demand</span></td><td><span class="desc">Calculated only when requested, so readings can be less frequent.</span></td></tr>
-            <tr><td><span class="sbadge info"><span class="dot"></span>long_running_service</span></td><td><span class="desc">Calculated by a separate, longer-running process.</span></td></tr>
-            <tr><td><span class="sbadge neutral"><span class="dot"></span>draft</span></td><td><span class="desc">Being set up and not ready yet. Do not rely on its values.</span></td></tr>
-            <tr><td><span class="sbadge warn"><span class="dot"></span>deprecated</span></td><td><span class="desc">No longer calculated. Past readings are kept, but no new ones will be added.</span></td></tr>
-          </tbody>
-        </table>
-      </div>
-      <p class="muted">The list includes metrics in every status. Filter on <code class="tok">status</code> on your side. In most cases you want <code class="tok">core</code>.</p>
+      <p>Use the metrics whose <code class="tok">status</code> is <code class="tok">core</code>: these are the facility’s live figures, updated on Fence’s regular schedule. The list can also return metrics with other statuses. They are not meant for integrations, so ignore them.</p>
 
       <h3 class="sub" id="metrics-latest">6.3 Get the Latest Value</h3>
       <p>Returns the most recent stored reading of one metric.</p>
@@ -832,7 +817,7 @@ grant_type=client_credentials
       <p class="muted">Formulas are written in LaTeX. When a term is itself another metric, its <code class="tok">metric_definition_id</code> is set so you can follow it. Not every metric has an explanation yet. Those return <span class="httpcode s2">200</span> with a <code class="tok">null</code> body.</p>
 
       <h3 class="sub" id="metrics-value-types">6.6 Value Types</h3>
-      <p>The shape of <code class="tok">value</code> depends on <code class="tok">value_type</code>. Compare <code class="tok">value_type</code> without regard to case: a few older readings store it with a capital letter (for example <code class="tok">"Amount"</code>).</p>
+      <p>The shape of <code class="tok">value</code> depends on <code class="tok">value_type</code>. Compare <code class="tok">value_type</code> without regard to case.</p>
       <div class="table-wrap">
         <table class="fence-table">
           <thead><tr><th>value_type</th><th>Shape of value</th></tr></thead>
@@ -882,7 +867,6 @@ grant_type=client_credentials
 ]</code></pre>
       </div>
       <p>Each report lists the parameters it accepts in <code class="tok">report_params</code>. <code class="tok">input_type</code> is one of <code class="tok">text</code>, <code class="tok">date</code>, <code class="tok">number</code> or <code class="tok">boolean</code>. When <code class="tok">options</code> is set, the value must be one of those options. <code class="tok">report_type</code> is the file format: <code class="tok">pdf</code>, <code class="tok">excel</code> (.xlsx), <code class="tok">csv</code> or <code class="tok">txt</code>.</p>
-      <p class="muted">The response also carries fields Fence uses for its own scheduled uploads, such as <code class="tok">auto_upload</code> and <code class="tok">document_category</code>. You can ignore them.</p>
 
       <h3 class="sub" id="reports-download">7.2 Download a Report</h3>
       <p>Generates the report and returns a temporary link to the file.</p>
@@ -939,7 +923,7 @@ grant_type=client_credentials
     <!-- ============ 8. SCHEMAS REFERENCE ============ -->
     <section id="schemas-reference">
       <h2 class="sec"><span class="num">08</span> Schemas Reference</h2>
-      <p class="sec-intro" id="schemas">Canonical request and response shapes for the declaration, metrics and reports endpoints.</p>
+      <p class="sec-intro" id="schemas">Canonical request and response shapes for the declaration, metrics and reports endpoints. Responses can include fields not listed here. Ignore any field you do not recognise.</p>
 
       <h4 class="subsub">Asset Declaration — Request</h4>
       <div class="schema">
@@ -1001,11 +985,9 @@ grant_type=client_credentials
         <div class="schema-body">
           <div class="field"><span class="name">id</span><span class="meta"><span class="ftype">UUID</span></span></div>
           <div class="field"><span class="name">name</span><span class="meta"><span class="ftype">string</span></span></div>
-          <div class="field"><span class="name">status</span><span class="meta"><span class="ftype">"core" | "on-demand" | "long_running_service" | "draft" | "deprecated"</span></span></div>
+          <div class="field"><span class="name">status</span><span class="meta"><span class="ftype">string</span><span class="fnote">Use metrics with <code class="tok">"core"</code>. Ignore any other value.</span></span></div>
           <div class="field"><span class="name">description</span><span class="meta"><span class="ftype">string | null</span></span></div>
-          <div class="field"><span class="name">calculation_strategy_name</span><span class="meta"><span class="ftype">string | null</span></span></div>
           <div class="field"><span class="name">metadata</span><span class="meta"><span class="ftype">object | null</span></span></div>
-          <div class="field"><span class="name">analytics_visualization_compatible</span><span class="meta"><span class="ftype">boolean</span></span></div>
         </div>
       </div>
 

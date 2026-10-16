@@ -130,7 +130,14 @@
       <a class="nav-link sub" href="#txn-metadata">Metadata by Type</a>
     </nav>
     <nav class="nav-group">
-      <p class="nav-group-title"><span class="n">6</span> Reading Metrics</p>
+      <p class="nav-group-title"><span class="n">6</span> Reading Assets &amp; Contracts</p>
+      <a class="nav-link sub" href="#assets-list">List Assets</a>
+      <a class="nav-link sub" href="#assets-get">Get an Asset</a>
+      <a class="nav-link sub" href="#contracts-list">List Contracts</a>
+      <a class="nav-link sub" href="#contracts-get">Get a Contract</a>
+    </nav>
+    <nav class="nav-group">
+      <p class="nav-group-title"><span class="n">7</span> Reading Metrics</p>
       <a class="nav-link sub" href="#metrics-overview">Overview</a>
       <a class="nav-link sub" href="#metrics-list">List Metrics</a>
       <a class="nav-link sub" href="#metrics-latest">Latest Value</a>
@@ -139,17 +146,17 @@
       <a class="nav-link sub" href="#metrics-value-types">Value Types</a>
     </nav>
     <nav class="nav-group">
-      <p class="nav-group-title"><span class="n">7</span> Downloading Reports</p>
+      <p class="nav-group-title"><span class="n">8</span> Downloading Reports</p>
       <a class="nav-link sub" href="#reports-available">Available Reports</a>
       <a class="nav-link sub" href="#reports-download">Download a Report</a>
     </nav>
     <nav class="nav-group">
-      <p class="nav-group-title"><span class="n">8</span> Schemas Reference</p>
+      <p class="nav-group-title"><span class="n">9</span> Schemas Reference</p>
       <a class="nav-link sub" href="#schemas">All Schemas</a>
       <a class="nav-link sub" href="#currencies">Supported Currencies</a>
     </nav>
     <nav class="nav-group">
-      <p class="nav-group-title"><span class="n">9</span> Error Handling</p>
+      <p class="nav-group-title"><span class="n">10</span> Error Handling</p>
       <a class="nav-link sub" href="#status-codes">HTTP Status Codes</a>
       <a class="nav-link sub" href="#pagination">Pagination</a>
       <a class="nav-link sub" href="#idempotency">Idempotency</a>
@@ -165,7 +172,7 @@
       <div class="hero-leaf"></div>
       <p class="eyebrow">Fence · Developer Documentation</p>
       <h1>Client Integration Guide</h1>
-      <p class="lede">Integrate with Fence to declare assets, register supporting documents and report payment transactions, and to read back what Fence holds for your facility: metric values and generated reports. This guide covers authentication, the declaration pipeline, document verification, reading metrics and reports, and error handling for the <strong>v2</strong> API.</p>
+      <p class="lede">Integrate with Fence to declare assets, register supporting documents and report payment transactions, and to read back what Fence holds for your facility: assets, contracts, metric values and generated reports. This guide covers authentication, the declaration pipeline, document verification, reading data back, and error handling for the <strong>v2</strong> API.</p>
       <div class="hero-meta">
         <span class="meta-chip"><span class="k">Audience</span><span class="v">Technical integration teams</span></span>
         <span class="meta-chip"><span class="k">API Version</span><span class="v mono">v2</span></span>
@@ -176,7 +183,7 @@
     <!-- ============ 1. GETTING STARTED ============ -->
     <section id="getting-started">
       <h2 class="sec"><span class="num">01</span> Getting Started</h2>
-      <p class="sec-intro">Fence is a tech-native facility agency for asset-backed finance. The API lets your systems declare portfolio assets, attach verification documents, and record payment transactions against a credit facility in real time. It also lets them read data back out of Fence: the facility’s metrics (see <a class="inline" href="#metrics">Section 6</a>) and its reports (see <a class="inline" href="#reports">Section 7</a>).</p>
+      <p class="sec-intro">Fence is a tech-native facility agency for asset-backed finance. The API lets your systems declare portfolio assets, attach verification documents, and record payment transactions against a credit facility in real time. It also lets them read data back out of Fence: the assets and contracts Fence holds (see <a class="inline" href="#read-back">Section 6</a>), the facility’s metrics (see <a class="inline" href="#metrics">Section 7</a>) and its reports (see <a class="inline" href="#reports">Section 8</a>).</p>
 
       <h3 class="sub" id="environments">1.1 Environments</h3>
       <p>Fence provides two environments. All API paths in this guide are relative to the environment base URL.</p>
@@ -685,12 +692,118 @@ grant_type=client_credentials
 
     <hr class="sec-divider">
 
-    <!-- ============ 6. READING METRICS ============ -->
+    <!-- ============ 6. READING ASSETS & CONTRACTS ============ -->
+    <section id="read-back">
+      <h2 class="sec"><span class="num">06</span> Reading Assets &amp; Contracts</h2>
+      <p class="sec-intro">Read back the assets and contracts Fence holds for your facility, using your own identifiers: the <code class="tok">asset_external_id</code> and <code class="tok">contract_external_id</code> you sent when declaring. Use these endpoints to check that Fence’s view of your book matches yours.</p>
+      <div class="callout note">
+        <span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></span>
+        <div class="body">Each record is <strong>flat</strong>, like the declaration request: Fence’s own fields (such as <code class="tok">id</code> and <code class="tok">created_at</code>) sit next to your facility’s fields as top-level keys. Which facility fields appear follows the field dictionary agreed during onboarding.</div>
+      </div>
+
+      <h3 class="sub" id="assets-list">6.1 List Assets</h3>
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path"><span class="base env-base">https://dev-api.fence.finance</span>/v2/{deal_id}/assets?page=1&size=50</span>
+        <button class="copy light copy-ep" data-copy="endpoint" aria-label="Copy endpoint"></button>
+      </div>
+      <p><strong>Query Parameters:</strong></p>
+      <div class="table-wrap">
+        <table class="fence-table">
+          <thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="mono nowrap">contract_external_id</td><td><span class="type-pill">string</span></td><td><span class="req no">No</span></td><td><span class="desc">Only the assets that belong to this contract.</span></td></tr>
+            <tr><td class="mono nowrap">fields</td><td><span class="type-pill">string</span></td><td><span class="req no">No</span></td><td><span class="desc">Comma-separated list of facility fields to return, for example <code class="tok">outstanding_amount,status</code>. <code class="tok">id</code>, <code class="tok">deal_id</code> and <code class="tok">created_at</code> are always returned. If omitted, every field is returned.</span></td></tr>
+            <tr><td class="mono nowrap">page</td><td><span class="type-pill">int</span></td><td><span class="req no">No</span></td><td><span class="desc">Page number, starting at 1. Default 1.</span></td></tr>
+            <tr><td class="mono nowrap">size</td><td><span class="type-pill">int</span></td><td><span class="req no">No</span></td><td><span class="desc">Items per page. Default 50.</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p class="muted">Your facility may support more filters on its own fields. These are agreed during onboarding. An invalid filter value returns <span class="httpcode s4">422</span>.</p>
+      <div class="code">
+        <div class="code-head"><span class="lang">Response</span><span class="resp"><span class="dot"></span>200 OK</span><button class="copy" data-copy="code" data-label="Copy"></button></div>
+        <pre><code data-lang="json">{
+  "items": [
+    {
+      "id": "c4d5e6f7-a8b9-4c0d-9e1f-2a3b4c5d6e7f",
+      "deal_id": "a1b2c3d4-e5f6-7890-abcd-ef1234567890",
+      "created_at": "2026-04-01T09:12:44Z",
+      "asset_external_id": "ADV-2026-001234",
+      "origination_installment_id": "INS-78901",
+      "organization_name": "Acme Corp",
+      "total_principal_amount": 800.00,
+      "total_fee_amount": 12.00,
+      "outstanding_amount": 812.00,
+      "transaction_date": "2026-04-01",
+      "due_date": "2026-04-15",
+      "currency": "USD",
+      "status": "active"
+    }
+  ],
+  "total": 1,
+  "page": 1,
+  "size": 50,
+  "pages": 1
+}</code></pre>
+      </div>
+      <p class="muted">The list is paginated with <code class="tok">page</code> and <code class="tok">size</code>; see <a class="inline" href="#pagination">Pagination</a>. Use <code class="tok">fields</code> to keep large pages small.</p>
+
+      <h3 class="sub" id="assets-get">6.2 Get an Asset</h3>
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path"><span class="base env-base">https://dev-api.fence.finance</span>/v2/{deal_id}/assets/{asset_external_id}</span>
+        <button class="copy light copy-ep" data-copy="endpoint" aria-label="Copy endpoint"></button>
+      </div>
+      <p>Returns one asset, with the same fields as an item of the list above. Returns <span class="httpcode s4">404</span> if no asset with this <code class="tok">asset_external_id</code> exists for the deal.</p>
+
+      <h3 class="sub" id="contracts-list">6.3 List Contracts</h3>
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path"><span class="base env-base">https://dev-api.fence.finance</span>/v2/{deal_id}/contracts?page=1&size=50</span>
+        <button class="copy light copy-ep" data-copy="endpoint" aria-label="Copy endpoint"></button>
+      </div>
+      <p><strong>Query Parameters:</strong></p>
+      <div class="table-wrap">
+        <table class="fence-table">
+          <thead><tr><th>Parameter</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
+          <tbody>
+            <tr><td class="mono nowrap">external_id</td><td><span class="type-pill">string</span></td><td><span class="req no">No</span></td><td><span class="desc">Only the contract with this <code class="tok">contract_external_id</code>.</span></td></tr>
+            <tr><td class="mono nowrap">is_eligible</td><td><span class="type-pill">bool</span></td><td><span class="req no">No</span></td><td><span class="desc">Only eligible (<code class="tok">true</code>) or only ineligible (<code class="tok">false</code>) contracts.</span></td></tr>
+            <tr><td class="mono nowrap">page</td><td><span class="type-pill">int</span></td><td><span class="req no">No</span></td><td><span class="desc">Page number, starting at 1. Default 1.</span></td></tr>
+            <tr><td class="mono nowrap">size</td><td><span class="type-pill">int</span></td><td><span class="req no">No</span></td><td><span class="desc">Items per page. Default 50.</span></td></tr>
+          </tbody>
+        </table>
+      </div>
+      <p>The response uses the same <code class="tok">items</code> / <code class="tok">total</code> / <code class="tok">page</code> / <code class="tok">size</code> / <code class="tok">pages</code> envelope as the asset list. Each item looks like this:</p>
+      <div class="code">
+        <div class="code-head"><span class="lang">Contract</span><button class="copy" data-copy="code" data-label="Copy"></button></div>
+        <pre><code data-lang="json">{
+  "id": "0e1f2a3b-4c5d-4e6f-8a7b-9c0d1e2f3a4b",
+  "created_at": "2026-04-01T09:12:40Z",
+  "external_id": "CTR-2026-000567",
+  "is_eligible": true,
+  "organization_name": "Acme Corp"
+}</code></pre>
+      </div>
+      <p class="muted">In a contract record, your identifier is returned as <code class="tok">external_id</code>. <code class="tok">is_eligible</code> says whether the contract currently meets the facility’s eligibility criteria.</p>
+
+      <h3 class="sub" id="contracts-get">6.4 Get a Contract</h3>
+      <div class="endpoint">
+        <span class="method get">GET</span>
+        <span class="path"><span class="base env-base">https://dev-api.fence.finance</span>/v2/{deal_id}/contracts/{contract_external_id}</span>
+        <button class="copy light copy-ep" data-copy="endpoint" aria-label="Copy endpoint"></button>
+      </div>
+      <p>Returns one contract, with the same fields as an item of the list above. Returns <span class="httpcode s4">404</span> if no contract with this <code class="tok">contract_external_id</code> exists for the deal.</p>
+    </section>
+
+    <hr class="sec-divider">
+
+    <!-- ============ 7. READING METRICS ============ -->
     <section id="metrics">
-      <h2 class="sec"><span class="num">06</span> Reading Metrics</h2>
+      <h2 class="sec"><span class="num">07</span> Reading Metrics</h2>
       <p class="sec-intro">Fence calculates a set of metrics for each facility, for example outstanding principal, borrowing base, concentration limits or covenant tests, and stores every reading with the date it applies to. These are the same figures shown in the Fence dashboard. The endpoints below let your systems read them.</p>
 
-      <h3 class="sub" id="metrics-overview">6.1 Overview</h3>
+      <h3 class="sub" id="metrics-overview">7.1 Overview</h3>
       <p>A <strong>metric definition</strong> describes one figure: its name, description and status. A <strong>metric value</strong> is one stored reading of that figure for a given <code class="tok">as_of_date</code>. The usual flow is:</p>
       <ol class="fence-list">
         <li>List the metric definitions for your deal and keep the <code class="tok">id</code> of the ones you need.</li>
@@ -703,10 +816,10 @@ grant_type=client_credentials
       </div>
       <div class="callout tip">
         <span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M9 18h6M10 22h4M12 2a7 7 0 0 0-4 12.7c.6.5 1 1.3 1 2.1V17h6v-.2c0-.8.4-1.6 1-2.1A7 7 0 0 0 12 2Z"/></svg></span>
-        <div class="body">These endpoints are not paginated: each returns a plain JSON array. When reading value history, always send a date range (see <a class="inline" href="#metrics-history">6.4</a>) so the response stays small.</div>
+        <div class="body">These endpoints are not paginated: each returns a plain JSON array. When reading value history, always send a date range (see <a class="inline" href="#metrics-history">7.4</a>) so the response stays small.</div>
       </div>
 
-      <h3 class="sub" id="metrics-list">6.2 List Metric Definitions</h3>
+      <h3 class="sub" id="metrics-list">7.2 List Metric Definitions</h3>
       <p>Returns the metric definitions for the deals your credentials can access.</p>
       <div class="endpoint">
         <span class="method get">GET</span>
@@ -737,7 +850,7 @@ grant_type=client_credentials
       </div>
       <p>Use the metrics whose <code class="tok">status</code> is <code class="tok">core</code>: these are the facility’s live figures, updated on Fence’s regular schedule. The list can also return metrics with other statuses. They are not meant for integrations, so ignore them.</p>
 
-      <h3 class="sub" id="metrics-latest">6.3 Get the Latest Value</h3>
+      <h3 class="sub" id="metrics-latest">7.3 Get the Latest Value</h3>
       <p>Returns the most recent stored reading of one metric.</p>
       <div class="endpoint">
         <span class="method get">GET</span>
@@ -757,9 +870,9 @@ grant_type=client_credentials
   "metadata": null
 }</code></pre>
       </div>
-      <p class="muted">In this example the amount is <code class="tok">1250000000 / 10^2</code> = 12,500,000.00 USD. See <a class="inline" href="#metrics-value-types">6.6 Value Types</a>. Returns <span class="httpcode s4">404</span> if the metric has no stored value yet, or if the metric does not exist or belongs to a deal you cannot access.</p>
+      <p class="muted">In this example the amount is <code class="tok">1250000000 / 10^2</code> = 12,500,000.00 USD. See <a class="inline" href="#metrics-value-types">7.6 Value Types</a>. Returns <span class="httpcode s4">404</span> if the metric has no stored value yet, or if the metric does not exist or belongs to a deal you cannot access.</p>
 
-      <h3 class="sub" id="metrics-history">6.4 List Value History</h3>
+      <h3 class="sub" id="metrics-history">7.4 List Value History</h3>
       <p>Returns the stored readings of one metric, filtered by date.</p>
       <div class="endpoint">
         <span class="method get">GET</span>
@@ -778,14 +891,14 @@ grant_type=client_credentials
           </tbody>
         </table>
       </div>
-      <p>The response is an array of the same objects as in <a class="inline" href="#metrics-latest">6.3</a>. Without any filter it returns the metric’s full history.</p>
+      <p>The response is an array of the same objects as in <a class="inline" href="#metrics-latest">7.3</a>. Without any filter it returns the metric’s full history.</p>
       <div class="callout note">
         <span class="ic-wrap"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><circle cx="12" cy="12" r="9"/><path d="M12 16v-4M12 8h.01"/></svg></span>
         <div class="body"><code class="tok">as_of_date</code> is the date the figure describes. <code class="tok">created_at</code> is when Fence stored it. Fence can store a corrected reading for a past date, so to stay in sync, poll with <code class="tok">created_at_gte</code> set to the time of your previous poll.</div>
       </div>
       <p class="muted">You can also fetch a single reading by its id: <code class="tok">GET /v3/metrics/{metric_definition_id}/values/{metric_value_id}</code>.</p>
 
-      <h3 class="sub" id="metrics-explanation">6.5 Get a Metric Explanation</h3>
+      <h3 class="sub" id="metrics-explanation">7.5 Get a Metric Explanation</h3>
       <p>Returns how a metric is calculated: where its data comes from, the formula, and the meaning of each term.</p>
       <div class="endpoint">
         <span class="method get">GET</span>
@@ -816,7 +929,7 @@ grant_type=client_credentials
       </div>
       <p class="muted">Formulas are written in LaTeX. When a term is itself another metric, its <code class="tok">metric_definition_id</code> is set so you can follow it. Not every metric has an explanation yet. Those return <span class="httpcode s2">200</span> with a <code class="tok">null</code> body.</p>
 
-      <h3 class="sub" id="metrics-value-types">6.6 Value Types</h3>
+      <h3 class="sub" id="metrics-value-types">7.6 Value Types</h3>
       <p>The shape of <code class="tok">value</code> depends on <code class="tok">value_type</code>. Compare <code class="tok">value_type</code> without regard to case.</p>
       <div class="table-wrap">
         <table class="fence-table">
@@ -837,12 +950,12 @@ grant_type=client_credentials
 
     <hr class="sec-divider">
 
-    <!-- ============ 7. DOWNLOADING REPORTS ============ -->
+    <!-- ============ 8. DOWNLOADING REPORTS ============ -->
     <section id="reports">
-      <h2 class="sec"><span class="num">07</span> Downloading Reports</h2>
+      <h2 class="sec"><span class="num">08</span> Downloading Reports</h2>
       <p class="sec-intro">Fence generates reports for each facility, for example borrowing base certificates, portfolio tapes or covenant reports. Which reports exist depends on the facility and is agreed during onboarding. Downloading one takes two calls: list the reports available for your deal, then request a download link for the one you want.</p>
 
-      <h3 class="sub" id="reports-available">7.1 List Available Reports</h3>
+      <h3 class="sub" id="reports-available">8.1 List Available Reports</h3>
       <div class="endpoint">
         <span class="method get">GET</span>
         <span class="path"><span class="base env-base">https://dev-api.fence.finance</span>/v2/{deal_id}/reports/available</span>
@@ -868,7 +981,7 @@ grant_type=client_credentials
       </div>
       <p>Each report lists the parameters it accepts in <code class="tok">report_params</code>. <code class="tok">input_type</code> is one of <code class="tok">text</code>, <code class="tok">date</code>, <code class="tok">number</code> or <code class="tok">boolean</code>. When <code class="tok">options</code> is set, the value must be one of those options. <code class="tok">report_type</code> is the file format: <code class="tok">pdf</code>, <code class="tok">excel</code> (.xlsx), <code class="tok">csv</code> or <code class="tok">txt</code>.</p>
 
-      <h3 class="sub" id="reports-download">7.2 Download a Report</h3>
+      <h3 class="sub" id="reports-download">8.2 Download a Report</h3>
       <p>Generates the report and returns a temporary link to the file.</p>
       <div class="endpoint">
         <span class="method post">POST</span>
@@ -888,7 +1001,7 @@ grant_type=client_credentials
         <table class="fence-table">
           <thead><tr><th>Field</th><th>Type</th><th>Required</th><th>Description</th></tr></thead>
           <tbody>
-            <tr><td class="mono nowrap">report_name</td><td><span class="type-pill">string</span></td><td><span class="req yes">Yes</span></td><td><span class="desc">A <code class="tok">report_name</code> from <a class="inline" href="#reports-available">7.1</a>.</span></td></tr>
+            <tr><td class="mono nowrap">report_name</td><td><span class="type-pill">string</span></td><td><span class="req yes">Yes</span></td><td><span class="desc">A <code class="tok">report_name</code> from <a class="inline" href="#reports-available">8.1</a>.</span></td></tr>
             <tr><td class="mono nowrap">params</td><td><span class="type-pill">list of objects</span></td><td><span class="req no">No</span></td><td><span class="desc">One <code class="tok">{"name", "value"}</code> pair per parameter. <code class="tok">value</code> is always a <strong>string</strong>, whatever the <code class="tok">input_type</code>: send dates as <code class="tok">"YYYY-MM-DD"</code>, numbers as <code class="tok">"100"</code> and booleans as <code class="tok">"true"</code> or <code class="tok">"false"</code>.</span></td></tr>
           </tbody>
         </table>
@@ -920,10 +1033,10 @@ grant_type=client_credentials
 
     <hr class="sec-divider">
 
-    <!-- ============ 8. SCHEMAS REFERENCE ============ -->
+    <!-- ============ 9. SCHEMAS REFERENCE ============ -->
     <section id="schemas-reference">
-      <h2 class="sec"><span class="num">08</span> Schemas Reference</h2>
-      <p class="sec-intro" id="schemas">Canonical request and response shapes for the declaration, metrics and reports endpoints. Responses can include fields not listed here. Ignore any field you do not recognise.</p>
+      <h2 class="sec"><span class="num">09</span> Schemas Reference</h2>
+      <p class="sec-intro" id="schemas">Canonical request and response shapes for the declaration, read-back, metrics and reports endpoints. Responses can include fields not listed here. Ignore any field you do not recognise.</p>
 
       <h4 class="subsub">Asset Declaration — Request</h4>
       <div class="schema">
@@ -979,6 +1092,42 @@ grant_type=client_credentials
         </div>
       </div>
 
+      <h4 class="subsub">Asset (read)</h4>
+      <div class="schema">
+        <div class="schema-head"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>Asset</div>
+        <div class="schema-body">
+          <div class="field"><span class="name">id</span><span class="meta"><span class="ftype">UUID</span><span class="fnote">Fence’s id for the asset.</span></span></div>
+          <div class="field"><span class="name">deal_id</span><span class="meta"><span class="ftype">UUID</span></span></div>
+          <div class="field"><span class="name">created_at</span><span class="meta"><span class="ftype">datetime</span></span></div>
+          <div class="field"><span class="name">asset_external_id</span><span class="meta"><span class="ftype">string</span><span class="fnote">Your identifier, as declared.</span></span></div>
+          <div class="field"><span class="name">…</span><span class="meta"><span class="ftype">facility fields</span><span class="fnote">Your facility’s fields as top-level keys, following the field dictionary agreed during onboarding.</span></span></div>
+        </div>
+      </div>
+
+      <h4 class="subsub">Contract (read)</h4>
+      <div class="schema">
+        <div class="schema-head"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>Contract</div>
+        <div class="schema-body">
+          <div class="field"><span class="name">id</span><span class="meta"><span class="ftype">UUID</span><span class="fnote">Fence’s id for the contract.</span></span></div>
+          <div class="field"><span class="name">created_at</span><span class="meta"><span class="ftype">datetime</span></span></div>
+          <div class="field"><span class="name">external_id</span><span class="meta"><span class="ftype">string</span><span class="fnote">Your <code class="tok">contract_external_id</code>.</span></span></div>
+          <div class="field"><span class="name">is_eligible</span><span class="meta"><span class="ftype">boolean</span></span></div>
+          <div class="field"><span class="name">…</span><span class="meta"><span class="ftype">facility fields</span><span class="fnote">Your facility’s fields as top-level keys, following the field dictionary agreed during onboarding.</span></span></div>
+        </div>
+      </div>
+
+      <h4 class="subsub">Paginated List</h4>
+      <div class="schema">
+        <div class="schema-head"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>Page</div>
+        <div class="schema-body">
+          <div class="field"><span class="name">items</span><span class="meta"><span class="ftype">list of objects</span></span></div>
+          <div class="field"><span class="name">total</span><span class="meta"><span class="ftype">integer | null</span></span></div>
+          <div class="field"><span class="name">page</span><span class="meta"><span class="ftype">integer</span></span></div>
+          <div class="field"><span class="name">size</span><span class="meta"><span class="ftype">integer</span></span></div>
+          <div class="field"><span class="name">pages</span><span class="meta"><span class="ftype">integer | null</span></span></div>
+        </div>
+      </div>
+
       <h4 class="subsub">Metric Definition Response</h4>
       <div class="schema">
         <div class="schema-head"><svg class="ic" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round" stroke-linejoin="round"><path d="M4 7V4h16v3M9 20h6M12 4v16"/></svg>MetricDefinitionApiResponse</div>
@@ -999,7 +1148,7 @@ grant_type=client_credentials
           <div class="field"><span class="name">name</span><span class="meta"><span class="ftype">string</span><span class="fnote">Name of the metric definition.</span></span></div>
           <div class="field"><span class="name">metric_definition_id</span><span class="meta"><span class="ftype">UUID</span></span></div>
           <div class="field"><span class="name">deal_id</span><span class="meta"><span class="ftype">UUID</span></span></div>
-          <div class="field"><span class="name">value</span><span class="meta"><span class="ftype">any | null</span><span class="fnote">Shape depends on <code class="tok">value_type</code>. See <a class="inline" href="#metrics-value-types">6.6</a>.</span></span></div>
+          <div class="field"><span class="name">value</span><span class="meta"><span class="ftype">any | null</span><span class="fnote">Shape depends on <code class="tok">value_type</code>. See <a class="inline" href="#metrics-value-types">7.6</a>.</span></span></div>
           <div class="field"><span class="name">as_of_date</span><span class="meta"><span class="ftype">datetime | null</span></span></div>
           <div class="field"><span class="name">value_type</span><span class="meta"><span class="ftype">string | null</span></span></div>
           <div class="field"><span class="name">metadata</span><span class="meta"><span class="ftype">object | null</span></span></div>
@@ -1058,9 +1207,9 @@ grant_type=client_credentials
 
     <hr class="sec-divider">
 
-    <!-- ============ 9. ERROR HANDLING ============ -->
+    <!-- ============ 10. ERROR HANDLING ============ -->
     <section id="error-handling">
-      <h2 class="sec"><span class="num">09</span> Error Handling</h2>
+      <h2 class="sec"><span class="num">10</span> Error Handling</h2>
 
       <h3 class="sub" id="status-codes">HTTP Status Codes</h3>
       <div class="table-wrap">
@@ -1082,7 +1231,7 @@ grant_type=client_credentials
       </div>
 
       <h3 class="sub" id="pagination">Pagination</h3>
-      <p>The declaration endpoints in section 3 paginate as follows. Other <code class="tok">/v2</code> list endpoints take <code class="tok">size</code> (default 50) and ignore <code class="tok">page_size</code>, so check the section you are calling. The metrics and reports endpoints in sections 6 and 7 are not paginated: they return a plain array.</p>
+      <p>The declaration endpoints in section 3 paginate as follows. The asset and contract lists in section 6 take <code class="tok">size</code> (default 50) instead and ignore <code class="tok">page_size</code>. The metrics and reports endpoints in sections 7 and 8 are not paginated: they return a plain array.</p>
       <div class="table-wrap">
         <table class="fence-table">
           <thead><tr><th>Parameter</th><th>Type</th><th>Default</th><th>Description</th></tr></thead>
@@ -1126,6 +1275,10 @@ grant_type=client_credentials
     <a href="#doc-register"><span class="method post" style="font-size:9px;padding:2px 5px;margin-right:7px">POST</span>documents</a>
     <a href="#upload-status"><span class="method get" style="font-size:9px;padding:2px 5px;margin-right:7px">GET</span>documents</a>
     <a href="#payments-bulk"><span class="method post" style="font-size:9px;padding:2px 5px;margin-right:7px">POST</span>payments/bulk</a>
+    <a href="#assets-list"><span class="method get" style="font-size:9px;padding:2px 5px;margin-right:7px">GET</span>assets</a>
+    <a href="#assets-get" class="deep">/{asset_external_id}</a>
+    <a href="#contracts-list"><span class="method get" style="font-size:9px;padding:2px 5px;margin-right:7px">GET</span>contracts</a>
+    <a href="#contracts-get" class="deep">/{contract_external_id}</a>
     <a href="#metrics-list"><span class="method get" style="font-size:9px;padding:2px 5px;margin-right:7px">GET</span>v3/metrics</a>
     <a href="#metrics-latest" class="deep">/{id}/values/latest</a>
     <a href="#metrics-history" class="deep">/{id}/values</a>
